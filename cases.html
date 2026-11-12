@@ -147,6 +147,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     <div class="seg mode" id="modeSeg" role="group" aria-label="顯示方式">
       <button type="button" data-mode="diagram" aria-pressed="true">圖解</button>
       <button type="button" data-mode="clay" aria-pressed="false">素模</button>
+      <button type="button" data-mode="real" aria-pressed="false">擬真</button>
     </div>
     <p class="hint">拖曳旋轉，滾輪或雙指縮放，右鍵或雙指平移</p>
     <div class="views" id="views">
@@ -180,10 +181,12 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 
     <section class="card">
       <h2>觀察方式</h2>
+      <p class="note">擬真模式加入依材質尺度生成的表面紋理與凹凸、天空環境反射、透光葉叢與 AI 合成人物。首爾以赤松（Pinus densiflora）樹形、峇里島以椰子（Cocos nucifera）羽狀棕櫚、藩郎以欖仁（Terminalia catappa）層狀樹冠、御代田以落葉松／闊葉混交林與春季櫻樹作區域地景參考；除原模型註明的櫻樹外，未確認現場樹種。人物不是現場照片，植栽位置、季節與材質老化均為示意。切換素模可對照原始量體。</p>
       <div class="row"><label for="explode">分解</label><input id="explode" type="range" min="0" max="5" step="0.1" value="0"><output id="explodeOut" for="explode">0m</output></div>
       <div class="row"><label for="cut">剖切</label><input id="cut" type="range" min="0" max="100" step="1" value="0"><output id="cutOut" for="cut">關</output></div>
       <div class="row"><label for="sun">日照時間</label><input id="sun" type="range" min="6.5" max="17.5" step="0.25" value="14"><output id="sunOut" for="sun">14:00</output></div>
       <p class="note" id="sunNote"></p>
+      <p class="links">植栽參考：<a href="https://npgsweb.ars-grin.gov/gringlobal/taxon/taxonomydetail?id=28441" target="_blank" rel="noopener">韓國赤松分布</a><a href="https://apps.worldagroforestry.org/treedb2/speciesprofile.php?Spid=545" target="_blank" rel="noopener">印尼椰子</a><a href="https://prosea.prota4u.org/view.aspx?id=4704" target="_blank" rel="noopener">越南欖仁</a><a href="https://www.town.miyota.nagano.jp/category/syoukai/2129.html" target="_blank" rel="noopener">御代田森林</a></p>
       <div class="checks">
         <label><input type="checkbox" id="ly-context" checked>基地與周邊</label>
         <label><input type="checkbox" id="ly-labels" checked>空間編號</label>
@@ -247,15 +250,146 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 
   // ---------- builders ----------
   var allMats = [];
+  // Real-mode resources are shared and built once; all original study colours remain available.
+  var realisticObjects = [], schematicObjects = [], photoPlanes = [], materialTextures = {};
+  var environmentMap = null, photoMaps = [], photosLoaded = 0, buildKey = '';
+  function texture(kind) {
+    if (materialTextures[kind]) return materialTextures[kind];
+    var c = document.createElement('canvas'); c.width = c.height = 512;
+    var g = c.getContext('2d'), random = rng(149 + kind.length * 137);
+    var base = {stone:'#d4cfc0',concrete:'#b7b4aa',aggregate:'#bdb9ad',wood:'#b79971',bamboo:'#c3a169',tile:'#af7359',darktile:'#77777a',metal:'#c4c8c8',grass:'#a5ae8c',earth:'#bba98e',asphalt:'#b1aca1',bark:'#918373',vent:'#b9b0a0',water:'#a8c5cc'}[kind] || '#c4beb0';
+    g.fillStyle = base; g.fillRect(0,0,512,512);
+    var im = g.getImageData(0,0,512,512), data = im.data;
+    for (var i=0;i<data.length;i+=4) {
+      var n=(random()-.5)*(kind==='aggregate'?62:kind==='asphalt'?38:18);
+      data[i]+=n;data[i+1]+=n;data[i+2]+=n;
+    }
+    g.putImageData(im,0,0);
+    if (kind==='wood'||kind==='bamboo'||kind==='bark') {
+      for (var k=0;k<480;k++) {
+        var x=random()*512;g.strokeStyle=k%4?'rgba(50,35,20,.12)':'rgba(248,232,190,.22)';g.lineWidth=.4+random()*1.2;
+        g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+random()*10,160,x-random()*8,360,x,512);g.stroke();
+      }
+      if(kind==='bamboo')for(var y=12;y<512;y+=164){g.fillStyle='rgba(70,48,26,.27)';g.fillRect(0,y,512,4);g.fillStyle='rgba(245,219,160,.45)';g.fillRect(0,y+4,512,2);}
+    }
+    if(kind==='stone'||kind==='concrete') {
+      for(var p=0;p<1500;p++){g.fillStyle='rgba(55,49,40,.08)';g.fillRect(random()*512,random()*512,.6+random()*2,random()*1.4+.5);}
+      g.strokeStyle='rgba(63,60,53,.22)';g.lineWidth=1.5;g.strokeRect(0,0,512,256);g.strokeRect(0,256,512,256);
+    }
+    if(kind==='tile'||kind==='darktile') {
+      for(var r=0;r<8;r++)for(var q=-1;q<9;q++){
+        var xx=q*64+(r%2)*32,yy=r*64;
+        var gr=g.createLinearGradient(xx,yy,xx+64,yy);gr.addColorStop(0,'rgba(20,14,10,.22)');gr.addColorStop(.4,'rgba(255,241,220,.16)');gr.addColorStop(1,'rgba(20,14,10,.18)');g.fillStyle=gr;g.fillRect(xx,yy+2,62,61);
+        g.fillStyle='rgba(27,20,14,.42)';g.fillRect(xx,yy,64,2);g.fillRect(xx,yy,2,64);
+      }
+    }
+    if(kind==='metal')for(var rib=0;rib<512;rib+=64){g.fillStyle='rgba(50,60,66,.28)';g.fillRect(rib,0,2,512);g.fillStyle='rgba(252,255,255,.4)';g.fillRect(rib+2,0,2,512);}
+    if(kind==='aggregate')for(var peb=0;peb<4400;peb++){g.fillStyle=['#77746a','#d0ccbf','#96938a','#e0daca'][peb%4];g.beginPath();g.arc(random()*512,random()*512,random()*2.4+.7,0,Math.PI*2);g.fill();}
+    if(kind==='grass')for(var blade=0;blade<4500;blade++){var gx=random()*512,gy=random()*512;g.strokeStyle=['#82916d','#b5b894','#6e805f'][blade%3];g.beginPath();g.moveTo(gx,gy);g.lineTo(gx+random()*3-1.5,gy-2-random()*6);g.stroke();}
+    if(kind==='vent')for(var vr=0;vr<8;vr++)for(var vc=0;vc<8;vc++)g.clearRect(vc*64+13,vr*64+14,38,36);
+    if(kind==='water')for(var rip=0;rip<130;rip++){g.strokeStyle='rgba(238,248,255,.18)';g.beginPath();var ry=random()*512;g.moveTo(0,ry);g.bezierCurveTo(170,ry-4,340,ry+4,512,ry);g.stroke();}
+    var t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+    var bump=t.clone();bump.encoding=THREE.LinearEncoding;bump.needsUpdate=true;
+    materialTextures[kind]={map:t,bump:bump};return materialTextures[kind];
+  }
+  function realUV(mesh) {
+    var g=mesh.geometry,p=g.attributes.position,n=g.attributes.normal;
+    if(!p||!n)return;
+    var uv=new Float32Array(p.count*2),unit=mesh.material.userData.unit||1;
+    for(var i=0;i<p.count;i++){
+      var x=p.getX(i)+mesh.position.x,y=p.getY(i)+mesh.position.y,z=p.getZ(i)+mesh.position.z;
+      var nx=Math.abs(n.getX(i)),ny=Math.abs(n.getY(i));
+      uv[i*2]=(nx>.65?z:x)/unit;uv[i*2+1]=(ny>.55?z:y)/unit;
+    }
+    g.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  }
+  function setupEnvironment() {
+    if(environmentMap)return;
+    try {
+      var es=new THREE.Scene();es.background=new THREE.Color(0xc2d2d9);
+      var dome=new THREE.Mesh(new THREE.SphereGeometry(80,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,
+        vertexShader:'varying vec3 vP; void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+        fragmentShader:'varying vec3 vP; void main(){float t=smoothstep(-.2,.85,normalize(vP).y);gl_FragColor=vec4(mix(vec3(.58,.53,.43),vec3(.48,.65,.83),t),1.);}' }));es.add(dome);
+      var pm=new THREE.PMREMGenerator(renderer);environmentMap=pm.fromScene(es,.05).texture;pm.dispose();dome.geometry.dispose();dome.material.dispose();
+    }catch(e){environmentMap=null;}
+  }
+  var leafMapCache={};
+  function foliageMap(type) {
+    if(leafMapCache[type])return leafMapCache[type];
+    var c=document.createElement('canvas');c.width=c.height=128;var g=c.getContext('2d');
+    var random=rng((type==='pine'||type==='larch')?411:322);
+    for(var i=0;i<((type==='pine'||type==='larch')?170:type==='palm'?0:30);i++){
+      var x=12+random()*104,y=12+random()*104;
+      g.fillStyle=type==='cherry'?['#d2a5ab','#e5c4c4','#bd8d94'][i%3]:['#607a49','#8a9b63','#4c6840'][i%3];
+      g.beginPath();g.ellipse(x,y,(type==='pine'||type==='larch')?1.2:4+random()*2,(type==='pine'||type==='larch')?11:8+random()*5,random()*Math.PI,0,Math.PI*2);g.fill();
+    }
+    if(type==='palm'){
+      var gr=g.createLinearGradient(38,0,90,0);gr.addColorStop(0,'#426537');gr.addColorStop(.5,'#8f9e59');gr.addColorStop(1,'#36592f');g.fillStyle=gr;
+      g.beginPath();g.moveTo(64,3);g.bezierCurveTo(89,42,79,92,64,125);g.bezierCurveTo(49,92,39,42,64,3);g.fill();
+      g.strokeStyle='#b5b879';g.lineWidth=1;g.beginPath();g.moveTo(64,6);g.lineTo(64,121);g.stroke();
+    }
+    var t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;leafMapCache[type]=t;return t;
+  }
+  function detailedTree(x,z,h,r,parent,y,type,seed) {
+    var group=new THREE.Group();group.position.set(x,y,z);parent.add(group);realisticObjects.push(group);
+    var random=rng(seed),bark=new THREE.MeshStandardMaterial({map:texture('bark').map,bumpMap:texture('bark').bump,bumpScale:.022,color:0xaaa18f,roughness:1,clippingPlanes:[clip],clipShadows:true});
+    var lm=new THREE.MeshStandardMaterial({map:foliageMap(type),alphaTest:.4,side:THREE.DoubleSide,roughness:.9,clippingPlanes:[clip],clipShadows:true});
+    var segs=[],leaves=[];
+    function br(a,b,rad){segs.push([new THREE.Vector3().fromArray(a),new THREE.Vector3().fromArray(b),rad]);}
+    br([0,0,0],[.06,h*.85,.04],Math.max(.045,r*.09));
+    if(type==='palm') {
+      for(var arm=0;arm<10;arm++){
+        var a=arm*Math.PI*2/10,reach=r*1.75;
+        var last=[0,h*.85,0];
+        for(var v=1;v<=22;v++){
+          var u=v/22,b=[Math.cos(a)*reach*u,h*.85+Math.sin(u*Math.PI)*r*.6-u*u*r*.55,Math.sin(a)*reach*u];br(last,b,.023);
+          for(var side=-1;side<=1;side+=2)leaves.push([b[0]+Math.cos(a+Math.PI/2)*side*.25,b[1]-.08,b[2]+Math.sin(a+Math.PI/2)*side*.25,.9,Math.cos(a+side*Math.PI/2),-.4,Math.sin(a+side*Math.PI/2)]);last=b;
+        }
+      }
+    } else {
+      var pine=type==='pine'||type==='larch',tiered=type==='almond',arms=pine?17:9;
+      for(var aidx=0;aidx<arms;aidx++){
+        var ang=aidx*2.399+random()*.3,by=(pine||tiered)?h*(.36+.5*aidx/arms):h*.45;
+        var spread=r*((pine||tiered)?(.9-.5*aidx/arms):(.55+random()*.4));
+        var end=[Math.cos(ang)*spread,(pine||tiered)?by+r*.12:h*.82+(random()-.3)*r*.7,Math.sin(ang)*spread];
+        br([0,by,0],end,Math.max(.012,r*.036));
+        for(var j=0;j<(small?16:38);j++)leaves.push([end[0]+(random()-.5)*r*.9,end[1]+(random()-.5)*r*(pine?.38:.7),end[2]+(random()-.5)*r*.9,pine?.58:.72]);
+      }
+    }
+    var wood=new THREE.InstancedMesh(new THREE.CylinderGeometry(.45,1,1,7),bark,segs.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),sc=new THREE.Vector3();
+    segs.forEach(function(s,i){var d=s[1].clone().sub(s[0]);q.setFromUnitVectors(UP,d.clone().normalize());p.copy(s[0]).add(s[1]).multiplyScalar(.5);sc.set(s[2],d.length(),s[2]);m.compose(p,q,sc);wood.setMatrixAt(i,m);});
+    wood.castShadow=wood.receiveShadow=true;group.add(wood);
+    var foliage=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),lm,leaves.length),eu=new THREE.Euler(),col=new THREE.Color();
+    leaves.forEach(function(v,i){p.set(v[0],v[1],v[2]);if(type==='palm'){q.setFromUnitVectors(UP,new THREE.Vector3(v[4],v[5],v[6]).normalize());}else{eu.set(random()*Math.PI,random()*Math.PI*2,random()*Math.PI);q.setFromEuler(eu);}sc.setScalar(v[3]*(.8+random()*.5));m.compose(p,q,sc);foliage.setMatrixAt(i,m);col.setRGB(.65+random()*.3,.7+random()*.25,.6+random()*.3);foliage.setColorAt(i,col);});
+    foliage.castShadow=foliage.receiveShadow=true;
+    foliage.customDepthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:lm.map,alphaTest:.4,side:THREE.DoubleSide,clippingPlanes:[clip],clipShadows:true});group.add(foliage);group.visible=false;
+  }
+  function photoPeople(x,y,z,k,parent) {
+    if(!photoMaps.length)for(var i=0;i<6;i++){
+      var map=new THREE.TextureLoader().load('assets/case-person-'+(i+1)+'.webp',function(){photosLoaded++;syncRealObjects();invalidate();});map.encoding=THREE.sRGBEncoding;photoMaps.push(map);
+    }
+    var index=(buildKey==='leaf'||buildKey==='court')?k%3:3+k%3;
+    var m=new THREE.MeshStandardMaterial({map:photoMaps[index],alphaTest:.3,side:THREE.DoubleSide,roughness:1,clippingPlanes:[clip],clipShadows:true});
+    var p=new THREE.Mesh(new THREE.PlaneGeometry(.83,1.7),m);p.position.set(x,y+.85,z);p.castShadow=true;p.receiveShadow=true;
+    p.customDepthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:m.map,alphaTest:.3,side:THREE.DoubleSide,clippingPlanes:[clip],clipShadows:true});
+    parent.add(p);realisticObjects.push(p);photoPlanes.push(p);p.userData.photoPerson=true;p.visible=false;
+  }
+  function syncRealObjects() {
+    realisticObjects.forEach(function(o){o.visible=mode==='real'&&(!o.userData.photoPerson||photosLoaded===6);});
+    schematicObjects.forEach(function(o){o.visible=mode!=='real'||(o.userData.scalePerson&&photosLoaded!==6);});
+  }
+
   function mat(hex, o) {
     o = o || {};
     var m = new THREE.MeshStandardMaterial({ color: hex, roughness: o.rough === undefined ? 0.9 : o.rough, metalness: 0, side: THREE.DoubleSide,
       transparent: !!o.op, opacity: o.op || 1, depthWrite: !o.op });
     if (!o.noClip) { m.clippingPlanes = [clip]; m.clipShadows = true; }
-    allMats.push({ m: m, hex: hex, clay: o.clay === undefined ? CLAY : o.clay });
+    m.userData.kind=o.kind||'';m.userData.unit=({stone:2,concrete:2.8,aggregate:.55,tile:2.4,darktile:2.4,wood:1.2,bamboo:1.0,metal:3,grass:4,earth:3,asphalt:4,vent:1.2})[o.kind]||1;
+    allMats.push({ m:m,hex:hex,clay:o.clay===undefined?CLAY:o.clay,kind:o.kind||'',rough:m.roughness,op:m.opacity,transparent:m.transparent,depth:m.depthWrite });
     return m;
   }
-  function add(mesh, parent, flat) { if (!flat) { mesh.castShadow = true; mesh.receiveShadow = true; } parent.add(mesh); return mesh; }
+  function add(mesh, parent, flat) { if(mesh.material.userData.kind)realUV(mesh); if (!flat) { mesh.castShadow = true; mesh.receiveShadow = true; } parent.add(mesh); return mesh; }
   function box(x0, x1, y0, y1, z0, z1, m, parent, flat) {
     var b = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), m);
     b.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
@@ -301,17 +435,20 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
   }
   function tree(x, z, h, r, mt, ml, parent, y) {
     y = y || 0;
-    cyl(x, z, y, y + h * 0.62, Math.max(0.08, r * 0.09), mt, parent, 6);
+    var tr=cyl(x,z,y,y+h*.62,Math.max(.08,r*.09),mt,parent,6);schematicObjects.push(tr);
     var c = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), ml);
     c.position.set(x, y + h * 0.62 + r * 0.55, z); c.scale.y = 0.82;
-    add(c, parent);
+    add(c,parent);schematicObjects.push(c);
+    var type=buildKey==='leaf'?'palm':buildKey==='afer'?'pine':buildKey==='court'?'almond':ml.color.getHex()===0xd08fa2?'cherry':Math.floor(x+z)%2?'larch':'broad';
+    detailedTree(x,z,h,r,parent,y,type,Math.floor((x+90)*137+(z+70)*53));
   }
   var skin = mat(0x6b4a36, { noClip: true }), cloth = [0xd8483e, 0x3f7fbf, 0xe98a2b, 0x3aa58a, 0x6b57b8].map(function (h) { return mat(h, { noClip: true, clay: 0xa8a398 }); });
   function person(x, y, z, k, parent) {
+    photoPeople(x,y,z,k,parent);
     var b = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1.25, 10), cloth[k % cloth.length]);
     b.position.set(x, y + 0.625, z); b.castShadow = true; parent.add(b);
     var h = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), skin);
-    h.position.set(x, y + 1.43, z); h.castShadow = true; parent.add(h);
+    h.position.set(x, y + 1.43, z); h.castShadow = true; parent.add(h);b.userData.scalePerson=h.userData.scalePerson=true;schematicObjects.push(b,h);
   }
   function rng(seed) { return function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
   // a leaf-shaped roof: from stem s to tip t ([x, z]), widest in the middle, cambered along its length and drooping at the edges
@@ -347,8 +484,8 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       { p: [22, 1.6, 26], k: 0, t: '南側庭園', d: '基地南側是種了松樹的庭園，比街道高出一段。' }
     ],
     build: function (c) {
-      var stone = mat(0xd6d2c6), glass = mat(0x6f8796, { rough: 0.35, clay: 0xb6b8b6 }), core = mat(0xb4b0a4), lawn = mat(0x7f9a5c, { noClip: true, clay: 0xbdb8ac }), road = mat(0x8f8c84, { noClip: true, clay: 0xb3aea2 });
-      var water = mat(0x6fb3c8, { noClip: true, clay: 0xb0b4b6 }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e }), pine = mat(0x3f6a3c, { noClip: true, clay: 0xb9b4a8 }), trunkT = mat(0x6b5a48, { clay: 0xaeaa9e }), pineT = mat(0x3f6a3c, { clay: 0xb9b4a8 }), nb = mat(0xaaa69c, { noClip: true, clay: 0xbfbaae });
+      var stone = mat(0xd6d2c6, { kind: 'stone' }), glass = mat(0x6f8796, { rough: 0.35, clay: 0xb6b8b6 , kind: 'glass' }), core = mat(0xb4b0a4, { kind: 'concrete' }), lawn = mat(0x7f9a5c, { noClip: true, clay: 0xbdb8ac , kind: 'grass' }), road = mat(0x8f8c84, { noClip: true, clay: 0xb3aea2 , kind: 'asphalt' });
+      var water = mat(0x6fb3c8, { noClip: true, clay: 0xb0b4b6 , kind: 'water' }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e , kind: 'bark' }), pine = mat(0x3f6a3c, { noClip: true, clay: 0xb9b4a8 }), trunkT = mat(0x6b5a48, { clay: 0xaeaa9e , kind: 'bark' }), pineT = mat(0x3f6a3c, { clay: 0xb9b4a8 }), nb = mat(0xaaa69c, { noClip: true, clay: 0xbfbaae , kind: 'concrete' });
       var FH = 3.25, BASE = 1.2, r = rng(7), g0 = level(c, 0);
       box(-1, 61.5, 0, BASE, -4, 21.5, core, g0);
       var mainX = [[0, 43], [0, 43], [0, 43], [0, 43], [0, 43], [0, 43], [0, 43], [3, 43], [9, 40], [15, 33]];
@@ -399,8 +536,8 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       { p: [7, 0.4, 13.5], k: 0, t: '石灰石基座', d: '有機形狀的平台略高於庭園地面。' }
     ],
     build: function (c) {
-      var tile = mat(0x8c4a36), bamboo = mat(0xc9a55a), dark = mat(0x3b322b), lime = mat(0xc4bca8), deck = mat(0x9c7a52), glass = mat(0x9fc0c4, { op: 0.4, rough: 0.2, clay: 0xb6b8b6 });
-      var grass = mat(0x7a9a5a, { noClip: true, clay: 0xbdb8ac }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e }), palm = mat(0x3f7440, { noClip: true, clay: 0xb9b4a8 });
+      var tile = mat(0x8c4a36, { kind: 'tile' }), bamboo = mat(0xc9a55a, { kind: 'bamboo' }), dark = mat(0x3b322b, { kind: 'bamboo' }), lime = mat(0xc4bca8, { kind: 'stone' }), deck = mat(0x9c7a52, { kind: 'wood' }), glass = mat(0x9fc0c4, { op: 0.4, rough: 0.2, clay: 0xb6b8b6 , kind: 'glass' });
+      var grass = mat(0x7a9a5a, { noClip: true, clay: 0xbdb8ac , kind: 'grass' }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e , kind: 'bark' }), palm = mat(0x3f7440, { noClip: true, clay: 0xb9b4a8 });
       var g0 = level(c, 0), g1 = level(c, 1), g2 = level(c, 2), g3 = level(c, 3);
       function oval(cx, cz, a, b, rot, n) { var o = []; for (var i = 0; i < (n || 40); i++) { var t = i / (n || 40) * Math.PI * 2, x = Math.cos(t) * a, z = Math.sin(t) * b; o.push([cx + x * Math.cos(rot) - z * Math.sin(rot), cz + x * Math.sin(rot) + z * Math.cos(rot)]); } return o; }
       prism(oval(7, 7.6, 7.2, 5.3, -0.75), 0, 0.35, lime, g0);
@@ -450,8 +587,8 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       { p: [14, 6.0, -0.2], k: 1, t: '背對街道的立面', d: '兩個臨街面的開口都很少，下層用通風磚，上層只有幾個小窗。' }
     ],
     build: function (c) {
-      var light = mat(0xc9c5b8), grey = mat(0x8e8a80), roof = mat(0x38383a), hole = mat(0x3a3d42), vent = mat(0xc9b9a0), deck = mat(0x9c8e78);
-      var road = mat(0x8f8c84, { noClip: true, clay: 0xb3aea2 }), pave = mat(0xb4b0a6, { noClip: true, clay: 0xbdb8ac }), nb = mat(0xaaa69c, { noClip: true, clay: 0xbfbaae }), trunk = mat(0x6b5a48, { clay: 0xaeaa9e }), leafM = mat(0x4a7c40, { clay: 0xb9b4a8 });
+      var light = mat(0xc9c5b8, { kind: 'aggregate' }), grey = mat(0x8e8a80, { kind: 'aggregate' }), roof = mat(0x38383a, { kind: 'darktile' }), hole = mat(0x3a3d42, { kind: 'glass' }), vent = mat(0xc9b9a0, { kind: 'vent' }), deck = mat(0x9c8e78, { kind: 'wood' });
+      var road = mat(0x8f8c84, { noClip: true, clay: 0xb3aea2 , kind: 'asphalt' }), pave = mat(0xb4b0a6, { noClip: true, clay: 0xbdb8ac }), nb = mat(0xaaa69c, { noClip: true, clay: 0xbfbaae , kind: 'concrete' }), trunk = mat(0x6b5a48, { clay: 0xaeaa9e , kind: 'bark' }), leafM = mat(0x4a7c40, { clay: 0xb9b4a8 });
       var g0 = level(c, 0), g1 = level(c, 1), g2 = level(c, 2), D = 4.8;
       var foot = [[0, 0], [17.7, 0], [20.5, 2.1], [20.5, D], [0, D]];
       prism(foot, 0, 4.3, light, g0);
@@ -497,8 +634,8 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       { p: [11.5, 5.2, 20.5], k: 0, t: '既有的櫻花樹', d: '主要入口朝南，對著基地上原有的一棵櫻花樹。' }
     ],
     build: function (c) {
-      var conc = mat(0x9f9b91), earth = mat(0x9c8468), wood = mat(0xb08650), woodD = mat(0x8f6a44), metal = mat(0x6f777c, { rough: 0.5 }), brick = mat(0xa3583d), hole = mat(0x3a3d42);
-      var grass = mat(0x7f9a5c, { noClip: true, clay: 0xbdb8ac }), path = mat(0xb3ab98, { noClip: true, clay: 0xb3aea2 }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e }), leafM = mat(0x4a7c40, { noClip: true, clay: 0xb9b4a8 }), cherry = mat(0xd08fa2, { noClip: true, clay: 0xb9b4a8 });
+      var conc = mat(0x9f9b91, { kind: 'concrete' }), earth = mat(0x9c8468, { kind: 'earth' }), wood = mat(0xb08650, { kind: 'wood' }), woodD = mat(0x8f6a44, { kind: 'wood' }), metal = mat(0x6f777c, { rough: 0.5 , kind: 'metal' }), brick = mat(0xa3583d, { kind: 'tile' }), hole = mat(0x3a3d42, { kind: 'glass' });
+      var grass = mat(0x7f9a5c, { noClip: true, clay: 0xbdb8ac , kind: 'grass' }), path = mat(0xb3ab98, { noClip: true, clay: 0xb3aea2 , kind: 'earth' }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e , kind: 'bark' }), leafM = mat(0x4a7c40, { noClip: true, clay: 0xb9b4a8 }), cherry = mat(0xd08fa2, { noClip: true, clay: 0xb9b4a8 });
       var g0 = level(c, 0), g1 = level(c, 1), g2 = level(c, 2);
       // earth: foundation and the earthen floor
       box(-0.15, 7.45, 0, 0.4, -0.15, 9.25, conc, g0);
@@ -535,7 +672,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     var c = CASES[k];
     c.root = new THREE.Group(); c.ctx = new THREE.Group(); c.levels = [];
     c.root.add(c.ctx); scene.add(c.root);
-    c.build(c);
+    buildKey=k;c.build(c);
     c.root.visible = false;
   });
   (function () {
@@ -551,9 +688,27 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
   // ---------- state ----------
   var explode = 0, hour = 14, boxScale = 0, tween = null, pins = [], bounds = null;
   function applyLooks() {
-    allMats.forEach(function (e) { e.m.color.setHex(mode === 'clay' ? e.clay : e.hex); });
+    if(mode==='real')setupEnvironment();
+    allMats.forEach(function(e){
+      var m=e.m,real=mode==='real',t=real&&e.kind&&e.kind!=='glass'?texture(e.kind):null;
+      m.color.setHex(mode==='clay'?e.clay:(real&&t?0xffffff:e.hex));
+      if(mode!=='diagram')m.color.convertSRGBToLinear();
+      m.map=t?t.map:null;m.bumpMap=t?t.bump:null;
+      m.bumpScale=({stone:.006,concrete:.006,aggregate:.009,wood:.004,bamboo:.004,tile:.022,darktile:.018,metal:.01,grass:.018,earth:.014,asphalt:.005,bark:.02})[e.kind]||.003;
+      m.roughness=real?({glass:.12,metal:.36,water:.13,wood:.78,bamboo:.7})[e.kind]||.93:e.rough;
+      m.metalness=real&&e.kind==='metal'?.6:real&&e.kind==='glass'?.2:0;
+      m.envMap=real?environmentMap:null;m.envMapIntensity=e.kind==='glass'?1.15:.38;
+      m.opacity=e.op;m.transparent=e.transparent;m.depthWrite=e.depth;
+      if(real&&e.kind==='glass'&&e.transparent){m.opacity=.32;m.depthWrite=false;}
+      m.alphaTest=real&&e.kind==='vent'?.45:0;m.needsUpdate=true;
+    });
+    renderer.toneMapping=mode==='real'?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;
+    renderer.toneMappingExposure=mode==='real'?1.06:1;
+    scene.environment=mode==='real'?environmentMap:null;
+    syncRealObjects();
     var bg = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue(mode === 'clay' ? '--clay-bg' : '--sky').trim() || '#d3dde3');
-    scene.background = bg; scene.fog = new THREE.Fog(bg.getHex(), comparing ? 900 : 300, comparing ? 1900 : 1100);
+    if(mode==='real'){bg.setHex(0xc4d0d4).convertSRGBToLinear();}
+    scene.background=bg;scene.fog=new THREE.Fog(bg.getHex(),comparing?550:110,comparing?1500:620);
     updateLight();
   }
   function updateLight() {
@@ -568,6 +723,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     sun.shadow.normalBias = 0.03 * R / 30;
     var k = Math.max(0.12, Math.min(1, Math.sin(alt) * 1.9));
     if (mode === 'clay') { sun.intensity = 0.3 + 0.45 * k; sun.color.setRGB(1, 1, 1); hemi.color.setRGB(1, 1, 1); hemi.groundColor.setHex(0xb0aba0); hemi.intensity = 0.5; }
+    else if(mode==='real'){sun.intensity=1.65+0.65*k;sun.color.setHex(hour>16?0xffd4a0:0xfff1da).convertSRGBToLinear();hemi.color.setHex(0xc9dcea).convertSRGBToLinear();hemi.groundColor.setHex(0x8c816b).convertSRGBToLinear();hemi.intensity=.85;}
     else { sun.intensity = 0.3 + 0.6 * k; sun.color.setRGB(1, 0.86 + 0.1 * k, 0.7 + 0.2 * k); hemi.color.setHex(0xdfeaf2); hemi.groundColor.setHex(0x8f8576); hemi.intensity = 0.36 + 0.12 * k; }
     invalidate();
   }
@@ -677,6 +833,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     b.addEventListener('click', function () {
       mode = b.getAttribute('data-mode');
       Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      try{localStorage.setItem('ap-mode',mode);}catch(e){}
       applyLooks();
     });
   });
@@ -710,9 +867,13 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 
   var saved = null;
   try { saved = localStorage.getItem('ap-case'); } catch (e) {}
+  var savedMode=null;try{savedMode=localStorage.getItem('ap-mode');}catch(e){}
+  mode=savedMode==='diagram'||savedMode==='clay'?savedMode:'real';
+  Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'),function(b){b.setAttribute('aria-pressed',b.getAttribute('data-mode')===mode?'true':'false');});
   applyLooks();
   if (saved === 'compare') show(null, true); else show(CASES[saved] ? saved : 'afer', false);
 
+  window.AP_CASES={scene:scene,camera:camera,controls:controls,cases:CASES,show:show,getMode:function(){return mode;},invalidate:invalidate};
   function frame(now) {
     requestAnimationFrame(frame);
     if (document.hidden) return;
@@ -725,6 +886,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     if (controls.update()) dirty = true;
     if (!dirty) return;
     dirty = false;
+    var photoWorld=new THREE.Vector3();photoPlanes.forEach(function(p){p.getWorldPosition(photoWorld);p.rotation.y=Math.atan2(camera.position.x-photoWorld.x,camera.position.z-photoWorld.z);});
     renderer.render(scene, camera);
     if (!labelsEl.hidden && pins.length) {
       var w = stage.clientWidth, h = stage.clientHeight, c = CASES[current];
@@ -741,3 +903,4 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 </script>
 </body>
 </html>
+
