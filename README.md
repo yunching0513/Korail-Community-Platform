@@ -57,3 +57,12 @@ Machan - Korail Community Platform（Paraa設計，孟加拉達卡Korail聚落�
 ### 驗證範圍
 
 JavaScript 語法通過；以 three.js r128 搭配模擬 renderer 執行初始化、三種模式、五個視角、六個比例選項、分解／剖切／日照事件，並檢查六張貼圖與 22 個人物剪影。預覽環境無法建立 WebGL context，因此尚未完成 GPU 畫面品質驗收，需在支援 WebGL 的實際瀏覽器確認。這仍是示意性的即時 3D 模型，不是實景攝影或測繪。
+
+## 亞太四案3D模型（2026-11-13）
+
+`cases.html`是同一門課亞太篇另外四個案例的互動量體模型，線上版：https://korail-community-platform.vercel.app/cases.html
+
+- **案例：** AFER Hangang（Hyunjoon Yoo + Partners，首爾）、Hideout Leaf Villa（Pablo Luna Studio，峇里島）、The Inner Court House（Plus Idea Studio，越南藩朗）、Cordmark Miyota（Aida Atelier，長野御代田）。
+- **功能：** 圖解與素模、五個視角、分解、剖切、日照時間（春秋分，依各案緯度）、空間編號說明、15×15×7cm模型盒在各比例尺下的範圍；「同比例尺比較」把四個模型排成一列，桃紅色線框是Machan的量體。
+- **限制：** 全部依ArchDaily等來源的圖面與照片推估，不是測繪。AFER的露臺位置是示意；Leaf Villa的平面與立面比例尺互相矛盾，採用立面（約16m），方位未知；Inner Court的屋頂坡度與內庭尺寸為估計；Miyota的屋頂與地形簡化。各案的說明與來源連結在頁面右側的資料卡。
+- 單一HTML檔，沒有圖片資產，不收錄任何原始圖面或照片。部署時須與`index.html`一起上傳。

@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="AFER Hangang、Hideout Leaf Villa、The Inner Court House、Cordmark Miyota的互動3D量體模型：可切換案例、分解、剖切、調整日照，並以同一比例尺並排比較。">
+<title>亞太四案3D模型</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* base reset */
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+
+/* Layout: one-screen viewer. The 3D stage takes the width, a control rail sits on the right, and the two stack on phones. */
+:root {
+  --bg: #e3e4e0;
+  --surface: #f2f2ef;
+  --fg: #22252a;
+  --muted: #5b6169;
+  --line: #c4c6c1;
+  --teal: #14867a;
+  --purple: #5f45b8;
+  --magenta: #b02a78;
+  --on-accent: #ffffff;
+  --sky: #d3dde3;
+  --chip: rgba(255, 255, 255, 0.86);
+  --clay-bg: #dcdcd8;
+  --font-display: "Bricolage Grotesque", "Noto Sans TC", system-ui, sans-serif;
+  --font-body: "Noto Sans TC", system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181b; --surface: #1e2125; --fg: #e9e9e5; --muted: #9ba1a8; --line: #34383d;
+    --teal: #45cdb8; --purple: #a391ee; --magenta: #e868b3; --on-accent: #16181b;
+    --sky: #252f39; --chip: rgba(30, 33, 37, 0.86); --clay-bg: #2b2e33; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16181b; --surface: #1e2125; --fg: #e9e9e5; --muted: #9ba1a8; --line: #34383d;
+  --teal: #45cdb8; --purple: #a391ee; --magenta: #e868b3; --on-accent: #16181b;
+  --sky: #252f39; --chip: rgba(30, 33, 37, 0.86); --clay-bg: #2b2e33; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.6; }
+.app {
+  box-sizing: border-box; height: 100%;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: auto minmax(0, 1fr); gap: 10px 16px;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.head h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+.head p { margin: 0; color: var(--muted); font-size: 13px; }
+.stage { position: relative; min-height: 0; min-width: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--sky); }
+#c { display: block; width: 100%; height: 100%; touch-action: none; outline-offset: -3px; }
+#labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.pin {
+  position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; padding: 0;
+  border: 1.5px solid var(--fg); border-radius: 50%; background: var(--chip); color: var(--fg);
+  font: 500 11px/1 var(--font-mono); cursor: pointer; pointer-events: auto;
+}
+.pin[aria-pressed="true"] { background: var(--magenta); border-color: var(--magenta); color: var(--on-accent); }
+.pin:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.hint { position: absolute; right: 10px; top: 8px; margin: 0; padding: 2px 8px; border-radius: 4px; background: var(--chip); color: var(--muted); font-size: 12px; pointer-events: none; }
+.views { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.views button, .seg button {
+  padding: 5px 11px; border: 1px solid var(--line); border-radius: 4px; background: var(--chip); color: var(--fg);
+  font: 500 13px/1.3 var(--font-body); cursor: pointer;
+}
+.views button:hover, .seg button:hover { border-color: var(--fg); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.mode { position: absolute; left: 10px; top: 8px; }
+.mode button { background: var(--chip); }
+.seg button { background: var(--surface); }
+.seg button[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+.panel { min-height: 0; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.card h2 { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
+.card p { margin: 0; }
+.facts { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: 13.5px; line-height: 1.55; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.facts .en { display: block; font-size: 12.5px; color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
+.links a { color: var(--purple); text-underline-offset: 2px; }
+.dims { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.dims div { min-width: 0; }
+.dims dt { font-size: 12px; color: var(--muted); }
+.dims dd { margin: 0; font: 500 17px/1.3 var(--font-mono); font-variant-numeric: tabular-nums; }
+.row { display: grid; grid-template-columns: 5.2em minmax(0, 1fr) 3.6em; align-items: center; gap: 8px; }
+.row label { font-weight: 500; }
+.row output { font: 400 12px var(--font-mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--teal); }
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
+.checks label { display: flex; align-items: center; gap: 6px; min-width: 0; cursor: pointer; }
+.checks input { accent-color: var(--teal); margin: 0; }
+.sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.note { color: var(--muted); font-size: 12.5px; }
+.readout { font: 400 12.5px/1.6 var(--font-mono); font-variant-numeric: tabular-nums; }
+.readout b { font-weight: 500; }
+.warn { color: var(--magenta); }
+.places { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.places button {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: baseline; width: 100%; text-align: left;
+  padding: 4px 6px; border: 0; border-radius: 4px; background: none; color: var(--fg); font: 400 13.5px/1.5 var(--font-body); cursor: pointer;
+}
+.places button:hover { background: var(--bg); }
+.places button[aria-pressed="true"] { background: var(--bg); font-weight: 500; }
+.places .n { font: 500 11px var(--font-mono); color: var(--muted); }
+.places button[aria-pressed="true"] .n { color: var(--magenta); }
+.detail { border-left: 3px solid var(--magenta); padding-left: 10px; }
+.detail strong { display: block; }
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { display: flex; flex-direction: column; height: auto; }
+  .stage { height: 62vh; height: 62svh; min-height: 320px; }
+  .panel { overflow: visible; }
+  .hint { display: none; }
+}
+.cases { grid-column: 1 / -1; }
+.cases button { background: var(--surface); }
+.head h1 span { color: var(--muted); font-weight: 500; }
+.head p a { color: inherit; text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <h1>亞太四案3D模型 <span id="caseName"></span></h1>
+    <p>當代建築課程亞太篇的另外四個案例。依圖面與照片推估的量體模型，不是測繪。第五個案例見<a href="./">Machan 3D模型</a>。</p>
+    <div class="seg cases" id="caseSeg" role="group" aria-label="案例">
+      <button type="button" data-case="afer" aria-pressed="true">AFER Hangang</button>
+      <button type="button" data-case="leaf" aria-pressed="false">Hideout Leaf Villa</button>
+      <button type="button" data-case="court" aria-pressed="false">The Inner Court House</button>
+      <button type="button" data-case="miyota" aria-pressed="false">Cordmark Miyota</button>
+      <button type="button" data-case="compare" aria-pressed="false">同比例尺比較</button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="c" tabindex="0" aria-label="案例的3D量體模型，可拖曳旋轉"></canvas>
+    <div id="labels"></div>
+    <div class="seg mode" id="modeSeg" role="group" aria-label="顯示方式">
+      <button type="button" data-mode="diagram" aria-pressed="true">圖解</button>
+      <button type="button" data-mode="clay" aria-pressed="false">素模</button>
+    </div>
+    <p class="hint">拖曳旋轉，滾輪或雙指縮放，右鍵或雙指平移</p>
+    <div class="views" id="views">
+      <button type="button" data-view="aerial">鳥瞰</button>
+      <button type="button" data-view="south">從南側看</button>
+      <button type="button" data-view="east">從東側看</button>
+      <button type="button" data-view="north">從北側看</button>
+      <button type="button" data-view="top">正上方</button>
+    </div>
+    <div class="fallback" id="fallback" hidden>這個瀏覽器無法啟用WebGL，3D模型沒辦法顯示。請換用新版的Chrome、Edge、Safari或Firefox。</div>
+  </div>
+
+  <aside class="panel">
+    <section class="card" id="caseCard">
+      <h2>建築基本資料</h2>
+      <dl class="facts" id="facts"></dl>
+      <p class="links" id="links"></p>
+      <dl class="dims">
+        <div><dt>東西向</dt><dd id="dimL"></dd></div>
+        <div><dt>南北向</dt><dd id="dimW"></dd></div>
+        <div><dt>最高</dt><dd id="dimH"></dd></div>
+      </dl>
+      <p class="note" id="limits"></p>
+    </section>
+
+    <section class="card" id="compareCard" hidden>
+      <h2>同比例尺比較</h2>
+      <p>四個模型用同一個比例尺並排，由左到右是AFER Hangang、Hideout Leaf Villa、The Inner Court House、Cordmark Miyota。最右邊的桃紅色線框是Machan的量體（約31×6×9m），當作對照的尺。</p>
+      <p class="note">AFER Hangang有10層樓、長約62m，其餘三案都在兩到三層、20m以內，放在一起可以看出這一章五個案例的尺度差了多少。</p>
+    </section>
+
+    <section class="card">
+      <h2>觀察方式</h2>
+      <div class="row"><label for="explode">分解</label><input id="explode" type="range" min="0" max="5" step="0.1" value="0"><output id="explodeOut" for="explode">0m</output></div>
+      <div class="row"><label for="cut">剖切</label><input id="cut" type="range" min="0" max="100" step="1" value="0"><output id="cutOut" for="cut">關</output></div>
+      <div class="row"><label for="sun">日照時間</label><input id="sun" type="range" min="6.5" max="17.5" step="0.25" value="14"><output id="sunOut" for="sun">14:00</output></div>
+      <p class="note" id="sunNote"></p>
+      <div class="checks">
+        <label><input type="checkbox" id="ly-context" checked>基地與周邊</label>
+        <label><input type="checkbox" id="ly-labels" checked>空間編號</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>作業模型盒 15×15×7cm</h2>
+      <div class="seg" id="boxSeg" role="group" aria-label="模型比例尺"></div>
+      <p class="readout" id="boxOut"></p>
+    </section>
+
+    <section class="card" id="placeCard">
+      <h2>空間說明</h2>
+      <div class="detail" id="detail"></div>
+      <ul class="places" id="places"></ul>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Four massing models from the course's Asia Pacific chapter, in one viewer.
+  // Axes for every model: x runs west to east, z runs north to south, y is up. All sizes are estimates in metres.
+  var stage = document.getElementById('stage'), canvas = document.getElementById('c'), labelsEl = document.getElementById('labels');
+  function $(id) { return document.getElementById(id); }
+  var renderer;
+  try {
+    if (!window.THREE || !THREE.OrbitControls) throw new Error('three');
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  } catch (e) {
+    $('fallback').hidden = false; canvas.hidden = true; $('views').hidden = true;
+    return;
+  }
+  var small = Math.min(window.innerWidth, window.innerHeight) < 700;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(38, 1, 0.3, 2000);
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI / 2 - 0.02; controls.minDistance = 2; controls.maxDistance = 900;
+
+  var clip = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e4);
+  var hemi = new THREE.HemisphereLight(0xdfeaf2, 0x8f8576, 0.5); scene.add(hemi);
+  var sun = new THREE.DirectionalLight(0xfff2dc, 1.2);
+  sun.castShadow = true;
+  var SM = small ? 2048 : 4096; sun.shadow.mapSize.set(SM, SM);
+  sun.shadow.bias = -4e-4; scene.add(sun); scene.add(sun.target);
+
+  var CLAY = 0xc9c4b8, mode = 'diagram', dirty = true;
+  function invalidate() { dirty = true; }
+
+  // ---------- builders ----------
+  var allMats = [];
+  function mat(hex, o) {
+    o = o || {};
+    var m = new THREE.MeshStandardMaterial({ color: hex, roughness: o.rough === undefined ? 0.9 : o.rough, metalness: 0, side: THREE.DoubleSide,
+      transparent: !!o.op, opacity: o.op || 1, depthWrite: !o.op });
+    if (!o.noClip) { m.clippingPlanes = [clip]; m.clipShadows = true; }
+    allMats.push({ m: m, hex: hex, clay: o.clay === undefined ? CLAY : o.clay });
+    return m;
+  }
+  function add(mesh, parent, flat) { if (!flat) { mesh.castShadow = true; mesh.receiveShadow = true; } parent.add(mesh); return mesh; }
+  function box(x0, x1, y0, y1, z0, z1, m, parent, flat) {
+    var b = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), m);
+    b.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    return add(b, parent, flat);
+  }
+  // plan polygon [[x, z], ...] extruded from y0 to y1
+  function prism(pts, y0, y1, m, parent, flat) {
+    var s = new THREE.Shape();
+    pts.forEach(function (p, i) { if (i) s.lineTo(p[0], p[1]); else s.moveTo(p[0], p[1]); });
+    var g = new THREE.ExtrudeGeometry(s, { depth: y1 - y0, bevelEnabled: false, curveSegments: 24 });
+    g.rotateX(Math.PI / 2);
+    var b = new THREE.Mesh(g, m); b.position.y = y1;
+    return add(b, parent, flat);
+  }
+  // cross-section polygon [[z, y], ...] extruded along x from x0 to x1
+  function profile(pts, x0, x1, m, parent) {
+    var s = new THREE.Shape();
+    pts.forEach(function (p, i) { if (i) s.lineTo(-p[0], p[1]); else s.moveTo(-p[0], p[1]); });
+    var g = new THREE.ExtrudeGeometry(s, { depth: x1 - x0, bevelEnabled: false });
+    g.rotateY(Math.PI / 2);
+    var b = new THREE.Mesh(g, m); b.position.x = x0;
+    return add(b, parent);
+  }
+  // thin surface through four corners [x, y, z]
+  function quad(a, b, c, d, m, parent) {
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([].concat(a, b, c, d), 3));
+    g.setIndex([0, 1, 2, 0, 2, 3]); g.computeVertexNormals();
+    return add(new THREE.Mesh(g, m), parent);
+  }
+  function cyl(x, z, y0, y1, r, m, parent, seg) {
+    var c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, y1 - y0, seg || 14), m);
+    c.position.set(x, (y0 + y1) / 2, z);
+    return add(c, parent);
+  }
+  var UP = new THREE.Vector3(0, 1, 0);
+  function strut(a, b, r, m, parent) {
+    var A = new THREE.Vector3().fromArray(a), B = new THREE.Vector3().fromArray(b), d = B.clone().sub(A);
+    var c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 8), m);
+    c.position.copy(A).addScaledVector(d, 0.5);
+    c.quaternion.setFromUnitVectors(UP, d.clone().normalize());
+    return add(c, parent);
+  }
+  function tree(x, z, h, r, mt, ml, parent, y) {
+    y = y || 0;
+    cyl(x, z, y, y + h * 0.62, Math.max(0.08, r * 0.09), mt, parent, 6);
+    var c = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), ml);
+    c.position.set(x, y + h * 0.62 + r * 0.55, z); c.scale.y = 0.82;
+    add(c, parent);
+  }
+  var skin = mat(0x6b4a36, { noClip: true }), cloth = [0xd8483e, 0x3f7fbf, 0xe98a2b, 0x3aa58a, 0x6b57b8].map(function (h) { return mat(h, { noClip: true, clay: 0xa8a398 }); });
+  function person(x, y, z, k, parent) {
+    var b = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1.25, 10), cloth[k % cloth.length]);
+    b.position.set(x, y + 0.625, z); b.castShadow = true; parent.add(b);
+    var h = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), skin);
+    h.position.set(x, y + 1.43, z); h.castShadow = true; parent.add(h);
+  }
+  function rng(seed) { return function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
+  // a leaf-shaped roof: from stem s to tip t ([x, z]), widest in the middle, cambered along its length and drooping at the edges
+  function leaf(s, t, w, yStem, yTip, camber, droop, bend, m, parent) {
+    var N = 26, M = 10, pos = [], idx = [], dx = t[0] - s[0], dz = t[1] - s[1], len = Math.sqrt(dx * dx + dz * dz), nx = -dz / len, nz = dx / len;
+    function at(u, v) {
+      var hw = (w / 2) * Math.pow(Math.sin(Math.PI * Math.pow(u, 0.85)), 0.75), side = bend * Math.sin(Math.PI * u);
+      return [s[0] + dx * u + nx * (v * hw + side), yStem + (yTip - yStem) * u + camber * Math.sin(Math.PI * u) - droop * v * v * (hw / (w / 2)), s[1] + dz * u + nz * (v * hw + side)];
+    }
+    for (var i = 0; i <= N; i++) for (var j = 0; j <= M; j++) { var p = at(i / N, j / M * 2 - 1); pos.push(p[0], p[1], p[2]); }
+    for (i = 0; i < N; i++) for (j = 0; j < M; j++) { var a = i * (M + 1) + j, b = a + M + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    add(new THREE.Mesh(g, m), parent);
+    return at;
+  }
+
+  // ---------- the four cases ----------
+  var CASES = {};
+  function level(c, k) { if (!c.levels[k]) { c.levels[k] = new THREE.Group(); c.root.add(c.levels[k]); } return c.levels[k]; }
+
+  CASES.afer = {
+    name: 'AFER Hangang', tab: 'AFER Hangang', lat: 37.5, step: 0.45, bounds: { x0: 0, x1: 60.5, z0: -3, z1: 20, h: 34 }, scales: [500, 600],
+    facts: [['設計', 'Hyunjoon Yoo + Partners'], ['地點', '韓國首爾龍山區西氷庫洞'], ['年代', '2024年（設計2018–20，施工2021–24）'], ['規模', '集合住宅28戶，地上10層、地下5層，高34m；基地2,945㎡，總樓地板16,028㎡'], ['構造', '鋼筋混凝土樑柱，石灰岩外牆']],
+    dims: ['約62m', '約17m', '約34m'],
+    src: [['ArchDaily', 'https://www.archdaily.com/1040863/afer-hangang-hyunjoon-yoo-plus-partners'], ['SPACE No.679', 'https://vmspace.com/eng/project/project_view.html?base_seq=MzA0Mg%3D%3D']],
+    limits: '依ArchDaily刊載的配置、平面、南向立面與剖面推估。主棟長約43m、東棟約15m，兩棟之間有約4.7m的通道。南側逐層退縮的幅度取自剖面，但每一層露台的位置與長度是示意，沒有逐一對圖；圓角、玻璃欄杆和地下五層都省略了。',
+    places: [
+      { p: [22, 12, 17.5], k: 3, t: '逐層退縮的露台', d: '南側每往上一層就往北退一點，退出來的樓板成為下一戶的露台。剖面上看，北側是垂直的，南側是斜的。' },
+      { p: [45.2, 2.2, 8], k: 0, t: '兩棟之間的通道', d: '主棟與東棟之間留了一道約4.7m寬的縫，地面有一條水池，從北側入口可以直接看到南邊的庭園。' },
+      { p: [20, 2.2, -1.5], k: 0, t: '北側入口', d: '車道與兩個主要入口都在北側，把南邊完整留給庭園和露台。' },
+      { p: [24, 34.6, 6], k: 9, t: '屋頂', d: '頂部幾層只佔中段，天際線從中間往兩側一階一階降下來。' },
+      { p: [22, 1.6, 26], k: 0, t: '南側庭園', d: '基地南側是種了松樹的庭園，比街道高出一段。' }
+    ],
+    build: function (c) {
+      var stone = mat(0xd6d2c6), glass = mat(0x6f8796, { rough: 0.35, clay: 0xb6b8b6 }), core = mat(0xb4b0a4), lawn = mat(0x7f9a5c, { noClip: true, clay: 0xbdb8ac }), road = mat(0x8f8c84, { noClip: true, clay: 0xb3aea2 });
+      var water = mat(0x6fb3c8, { noClip: true, clay: 0xb0b4b6 }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e }), pine = mat(0x3f6a3c, { noClip: true, clay: 0xb9b4a8 }), trunkT = mat(0x6b5a48, { clay: 0xaeaa9e }), pineT = mat(0x3f6a3c, { clay: 0xb9b4a8 }), nb = mat(0xaaa69c, { noClip: true, clay: 0xbfbaae });
+      var FH = 3.25, BASE = 1.2, r = rng(7), g0 = level(c, 0);
+      box(-1, 61.5, 0, BASE, -4, 21.5, core, g0);
+      var mainX = [[0, 43], [0, 43], [0, 43], [0, 43], [0, 43], [0, 43], [0, 43], [3, 43], [9, 40], [15, 33]];
+      var eastX = [[47.7, 60.5], [47.7, 60.5], [47.7, 60.5], [47.7, 60.5], [47.7, 60.5], [47.7, 60.5], [47.7, 60.5], [47.7, 60.5], [50, 60.5], null];
+      for (var f = 0; f < 10; f++) {
+        var g = level(c, f), y = BASE + f * FH, zs = 16.6 - 0.85 * Math.max(0, f - 1), ze = 20 - 1.0 * Math.max(0, f - 1);
+        [[mainX[f], 0, zs], [eastX[f], -3, ze]].forEach(function (b, bi) {
+          if (!b[0]) return;
+          var x0 = b[0][0], x1 = b[0][1];
+          box(x0 + 0.3, x1 - 0.3, y, y + FH - 0.4, b[1] + 0.3, b[2] - 0.3, glass, g);
+          box(x0, x1, y + FH - 0.4, y + FH, b[1], b[2], stone, g);
+          box(x0, x1, y, y + FH - 0.4, b[1], b[1] + 0.5, stone, g);
+          // terraces: white slabs that reach past the facade below
+          var x = x0 + r() * 3;
+          while (x < x1 - 4) {
+            var w = 5 + r() * 9, d = 1.5 + r() * 1.4;
+            if (x + w > x1) w = x1 - x;
+            box(x, x + w, y - 0.3, y, b[2] - 0.2, b[2] + d, stone, g);
+            if (r() > 0.55 && f > 0) tree(x + w * 0.5, b[2] + d * 0.5, 2.6, 0.9, trunkT, pineT, g, y);
+            x += w + 2 + r() * 6;
+          }
+        });
+      }
+      box(19, 27, BASE + 10 * FH, BASE + 10 * FH + 0.6, 2, 9, stone, level(c, 9));
+      // site
+      var s = c.ctx;
+      box(-12, 78, -0.1, 0, -16, 40, road, s, true);
+      box(-1, 61.5, 0, 0.9, 21.5, 36, lawn, s, true);
+      box(43.9, 46.8, BASE, BASE + 0.05, 6, 15, water, s, true);
+      [[4, 27], [11, 31], [19, 26], [27, 30], [34, 27], [41, 31], [50, 28], [57, 31], [15, 34], [46, 34]].forEach(function (p) { tree(p[0], p[1], 6 + (p[0] % 3), 2.2, trunk, pine, s, 0.9); });
+      [[-12, -4, 7, 5, 26], [64, 78, 5, -14, 8], [64, 78, 6, 14, 36], [8, 30, 5, -16, -8], [34, 56, 6, -16, -8]].forEach(function (b) { box(b[0], b[1], 0, b[2], b[3], b[4], nb, s); });
+      person(20, BASE, -2.2, 0, s); person(22, 0.9, 25, 1, s); person(45.2, BASE, 3, 2, s);
+    }
+  };
+
+  CASES.leaf = {
+    name: 'Hideout Leaf Villa', tab: 'Hideout Leaf', lat: -8.45, step: 1, bounds: { x0: -2, x1: 16.5, z0: -1.5, z1: 16.5, h: 7.2 }, scales: [100, 150],
+    facts: [['設計', 'Pablo Luna Studio'], ['地點', '印尼峇里島Karangasem縣Sidemen'], ['年代', '2026年'], ['規模', '度假住宿，160㎡'], ['構造', '黑竹與黃竹結構，陶土瓦屋面，石灰石基座，曲面玻璃']],
+    dims: ['約16m', '約16m', '約7m'],
+    src: [['ArchDaily', 'https://www.archdaily.com/1183102/hideout-leaf-villa-pablo-luna-studio'], ['ArchUp', 'https://archup.net/hideout-leaf-bamboo-and-glass/']],
+    limits: '平面圖與立面圖的比例尺互相矛盾：照平面的比例尺算只有8m左右，照立面算約15m。這裡採用立面的尺寸，因為圖上的人物高度和160㎡的面積都與它吻合。四片葉形屋頂用簡化的曲面表示，竹構只畫出外圈的斜撐，圖面沒有標指北，方位未知。',
+    places: [
+      { p: [9.5, 5.2, 7.5], k: 2, t: '三片下層葉片', d: '三片陶瓦屋頂從西北角的同一點往外張開，葉尖壓低到人的高度，彼此交疊。' },
+      { p: [3.8, 7.6, 5], k: 3, t: '上層葉片', d: '第四片葉子抬高，蓋在橢圓形的夾層上方，和下面三片之間留出通風的縫。' },
+      { p: [3.6, 3.9, 4.2], k: 1, t: '橢圓夾層', d: '懸在起居空間上方的橢圓平台，由螺旋梯上去。' },
+      { p: [9.4, 1.6, 6.6], k: 1, t: '曲面玻璃臥室', d: '臥室用曲面玻璃圍出來，其餘空間對庭園完全敞開。' },
+      { p: [13.6, 1.8, 10.2], k: 2, t: '斜撐竹柱', d: '屋頂邊緣由成對傾斜的竹柱撐起，柱腳收在基座邊緣。' },
+      { p: [7, 0.4, 13.5], k: 0, t: '石灰石基座', d: '有機形狀的平台略高於庭園地面。' }
+    ],
+    build: function (c) {
+      var tile = mat(0x8c4a36), bamboo = mat(0xc9a55a), dark = mat(0x3b322b), lime = mat(0xc4bca8), deck = mat(0x9c7a52), glass = mat(0x9fc0c4, { op: 0.4, rough: 0.2, clay: 0xb6b8b6 });
+      var grass = mat(0x7a9a5a, { noClip: true, clay: 0xbdb8ac }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e }), palm = mat(0x3f7440, { noClip: true, clay: 0xb9b4a8 });
+      var g0 = level(c, 0), g1 = level(c, 1), g2 = level(c, 2), g3 = level(c, 3);
+      function oval(cx, cz, a, b, rot, n) { var o = []; for (var i = 0; i < (n || 40); i++) { var t = i / (n || 40) * Math.PI * 2, x = Math.cos(t) * a, z = Math.sin(t) * b; o.push([cx + x * Math.cos(rot) - z * Math.sin(rot), cz + x * Math.sin(rot) + z * Math.cos(rot)]); } return o; }
+      prism(oval(7, 7.6, 7.2, 5.3, -0.75), 0, 0.35, lime, g0);
+      // mezzanine, spiral stair, curved glass rooms
+      prism(oval(3.6, 4.2, 2.7, 1.9, -0.6), 3.3, 3.5, deck, g1);
+      for (var i = 0; i < 16; i++) { var a = i / 16 * Math.PI * 1.7, sx = 5.6 + Math.cos(a) * 0.9, sz = 6 + Math.sin(a) * 0.9; box(sx - 0.45, sx + 0.45, 0.35 + i * 0.185, 0.43 + i * 0.185, sz - 0.16, sz + 0.16, deck, g1); }
+      cyl(5.6, 6, 0.35, 3.4, 0.09, dark, g1);
+      [[9.4, 6.6, 2.3], [5.4, 10.6, 2.0]].forEach(function (r) { var m = new THREE.Mesh(new THREE.CylinderGeometry(r[2], r[2], 2.6, 32, 1, true), glass); m.position.set(r[0], 1.65, r[1]); g1.add(m); });
+      [[2.2, 3.2], [4.9, 3.0], [2.4, 5.6], [5.0, 5.4]].forEach(function (p) { cyl(p[0], p[1], 0.35, 3.3, 0.08, bamboo, g1, 8); });
+      // four leaves
+      var S = [1.2, 1.0], L = [];
+      L.push(leaf(S, [15.6, 9.6], 7.0, 5.3, 2.6, 0.9, 0.9, 0.6, tile, g2));
+      L.push(leaf(S, [7.2, 16.2], 7.0, 5.0, 2.5, 0.9, 0.9, 0, tile, g2));
+      L.push(leaf(S, [0.2, 14.4], 5.6, 4.7, 2.4, 0.8, 0.8, -0.5, tile, g2));
+      var top = leaf([0.9, 0.2], [6.6, 9.4], 5.4, 6.9, 5.7, 0.8, 0.6, 0.3, tile, g3);
+      // paired raking bamboo posts under the outer edge of each lower leaf
+      L.forEach(function (at, li) {
+        [0.42, 0.66, 0.88].forEach(function (u) {
+          [-0.78, 0.78].forEach(function (v) {
+            if (li === 1 && v < 0 && u < 0.5) return;
+            var p = at(u, v), q = at(u, v * 0.35);
+            strut([q[0] * 0.92 + 0.6, 0.35, q[2] * 0.92 + 0.6], [p[0], p[1] - 0.05, p[2]], 0.07, li % 2 ? dark : bamboo, g2);
+          });
+        });
+      });
+      [0.3, 0.6].forEach(function (u) { [-0.6, 0.6].forEach(function (v) { var p = top(u, v); strut([p[0] * 0.8 + 0.7, 3.5, p[2] * 0.8 + 0.8], [p[0], p[1] - 0.05, p[2]], 0.06, dark, g3); }); });
+      // garden
+      var s = c.ctx;
+      box(-14, 30, -0.1, 0, -14, 30, grass, s, true);
+      [[-7, -4, 8], [20, 0, 9], [22, 13, 8], [-8, 10, 9], [-5, 22, 7], [19, 23, 8], [6, -9, 9]].forEach(function (p) { tree(p[0], p[1], p[2], 1.7, trunk, palm, s); });
+      person(8, 0.35, 9.5, 0, s); person(11.8, 0.35, 8.2, 3, s); person(3.4, 3.5, 4.4, 1, g1);
+    }
+  };
+
+  CASES.court = {
+    name: 'The Inner Court House', tab: 'Inner Court', lat: 11.57, step: 1.2, aerial: [1.1, -2.3], bounds: { x0: 0, x1: 20.5, z0: 0, z1: 4.8, h: 11 }, scales: [150, 200],
+    facts: [['設計', 'Plus Idea Studio'], ['地點', '越南藩郎（Phan Rang，原寧順省，2025年併入慶和省）'], ['年代', '2025年'], ['規模', '獨棟住宅，250㎡；約20.5×5m的街角管屋'], ['構造', '外露骨材混凝土，深色屋瓦，通風磚']],
+    dims: ['約20.5m', '約5m', '約11m'],
+    src: [['ArchDaily', 'https://www.archdaily.com/1183332/the-inner-court-house-plus-idea-studio'], ['ArchUp', 'https://archup.net/inner-court-house/']],
+    limits: '依ArchDaily刊載的平面、長向剖面、北向立面與軸測圖推估。長邊朝北臨街，東端是切角的街角。圖面沒有橫向剖面，屋頂的坡度與屋脊位置是從立面和軸測圖猜的；開口只畫出北向立面上的幾處，室內隔間省略。',
+    places: [
+      { p: [19.2, 2.2, 1.0], k: 0, t: '街角的車庫', d: '東端切角的位置是車庫和主要入口，建築用最小的面對著街角。' },
+      { p: [10.3, 6.0, 1.3], k: 1, t: '內庭', d: '二樓北側挖出一個種樹的露台，屋頂在這裡開了一個口，樹從裡面長出來。全屋的光和風主要從這裡進來。' },
+      { p: [10, 2.2, 2.4], k: 0, t: '一樓的長條空間', d: '客廳、餐廚和多用途空間沿著20m的長向一字排開，樓梯貼著南側的共同壁。' },
+      { p: [6, 9.2, 1.4], k: 2, t: '深色瓦屋頂', d: '深色屋瓦從屋脊一路包到二樓窗戶上緣，把上半部做成一個封閉的量體，只留幾道水平窄縫。' },
+      { p: [2.6, 11.3, 3.5], k: 2, t: '設備平台', d: '西端凸出屋頂的方盒子是設備平台。' },
+      { p: [14, 6.0, -0.2], k: 1, t: '背對街道的立面', d: '兩個臨街面的開口都很少，下層用通風磚，上層只有幾個小窗。' }
+    ],
+    build: function (c) {
+      var light = mat(0xc9c5b8), grey = mat(0x8e8a80), roof = mat(0x38383a), hole = mat(0x3a3d42), vent = mat(0xc9b9a0), deck = mat(0x9c8e78);
+      var road = mat(0x8f8c84, { noClip: true, clay: 0xb3aea2 }), pave = mat(0xb4b0a6, { noClip: true, clay: 0xbdb8ac }), nb = mat(0xaaa69c, { noClip: true, clay: 0xbfbaae }), trunk = mat(0x6b5a48, { clay: 0xaeaa9e }), leafM = mat(0x4a7c40, { clay: 0xb9b4a8 });
+      var g0 = level(c, 0), g1 = level(c, 1), g2 = level(c, 2), D = 4.8;
+      var foot = [[0, 0], [17.7, 0], [20.5, 2.1], [20.5, D], [0, D]];
+      prism(foot, 0, 4.3, light, g0);
+      [[16.0, 17.6, 0.1, 2.7], [7.2, 8.9, 0.1, 2.5], [2.2, 3.2, 0.1, 2.5]].forEach(function (o) { box(o[0], o[1], o[2], o[3], -0.04, 0.05, hole, g0); });
+      [[14.2, 15.3], [0.8, 1.9]].forEach(function (o) { box(o[0], o[1], 1.6, 3.0, -0.05, 0.05, vent, g0); });
+      // upper floor, with the planted court cut out of the north side
+      box(0, 9.3, 4.3, 6.7, 0, D, grey, g1);
+      box(9.3, 11.3, 4.3, 6.7, 2.6, D, grey, g1);
+      prism([[11.3, 0], [17.7, 0], [20.5, 2.1], [20.5, D], [11.3, D]], 4.3, 6.7, grey, g1);
+      box(9.3, 11.3, 4.3, 4.45, 0, 2.6, deck, g1);
+      box(9.3, 11.3, 4.45, 5.3, 0, 0.12, grey, g1);
+      [[14.6, 16.0], [5.2, 6.3], [3.4, 4.6]].forEach(function (o) { box(o[0], o[1], 5.0, 6.2, -0.04, 0.05, hole, g1); });
+      tree(10.3, 1.3, 4.6, 1.0, trunk, leafM, g1, 4.45);
+      // roof: steep toward the street, the court left open
+      var sec = [[0, 6.7], [3.2, 10.6], [D, 9.4], [D, 6.7]];
+      profile(sec, 0, 9.3, roof, g2); profile(sec, 11.3, 19.4, roof, g2);
+      profile([[2.6, 6.7], [2.6, 9.9], [3.2, 10.6], [D, 9.4], [D, 6.7]], 9.3, 11.3, roof, g2);
+      box(0, 5.2, 8.9, 11, 2.2, D, light, g2);
+      box(1.2, 8.6, 7.0, 7.12, -0.03, 0.06, light, g2); box(12, 18.6, 7.0, 7.12, -0.03, 0.06, light, g2);
+      // street corner
+      var s = c.ctx;
+      box(-14, 36, -0.12, 0, -14, 22, road, s, true);
+      box(-14, 23.5, 0, 0.15, -2.6, 0, pave, s, true); box(20.5, 23.5, 0, 0.15, 0, 22, pave, s, true);
+      box(0, 20.5, 0, 9, D + 0.05, 12, nb, s); box(-8.5, -0.1, 0, 8, 0, 11, nb, s); box(0, 20.5, 0, 7, 12.1, 20, nb, s);
+      box(30, 36, 0, 7, 0, 12, nb, s);
+      [[4, -1.4], [12.5, -1.4], [22, 6]].forEach(function (p) { tree(p[0], p[1], 5.5, 1.5, trunk, leafM, s, 0.15); });
+      person(18.4, 0.15, -1.2, 0, s); person(8, 0.15, -1.6, 1, s); person(22.2, 0.15, 3.2, 3, s);
+    }
+  };
+
+  CASES.miyota = {
+    name: 'Cordmark Miyota', tab: 'Cordmark Miyota', lat: 36.32, step: 1.3, bounds: { x0: -1.2, x1: 11.2, z0: -0.8, z1: 13.2, h: 8.6 }, scales: [100, 125],
+    facts: [['設計', 'Aida Atelier'], ['地點', '日本長野縣御代田町'], ['年代', '2022年（設計2020–21，施工2021–22）'], ['規模', '社區設施；基地2,167㎡，建築面積128㎡，樓地板186㎡，最高7.34m'], ['構造', '木構造，栗木心柱，磚造蓄熱爐（pechka），鍍鋁鋅鋼板屋面，鋼筋混凝土基礎']],
+    dims: ['約12m', '約13m', '7.34m'],
+    src: [['ArchDaily', 'https://www.archdaily.com/1183239/cordmark-miyota-community-facility-aida-atelier'], ['JIA優秀建築選2023', 'https://jia-award.jia.or.jp/kenchikusen/2023/best-architecture/1610'], ['architecturephoto', 'https://architecturephoto.net/213202']],
+    limits: '依ArchDaily刊載的配置、兩層平面、兩張剖面與分解軸測圖推估，最高7.34m取自JIA的資料。兩層的木造主體簡化成一個約7.3×9.1m的方盒子；螺旋狀往外展開的下屋屋頂簡化成南、東兩片斜板和一個轉角；地形的高低差沒有做。',
+    places: [
+      { p: [7, 0.7, 8], k: 0, t: '土間（doma）', d: '南側是不鋪地板的土間，直接和戶外的下屋連在一起，是整棟建築最主要的共用空間。' },
+      { p: [4.5, 2.9, 11.6], k: 2, t: '下屋（geya）', d: '低矮的金屬屋頂繞著主體往南、往東展開，下面是半戶外的工作空間。' },
+      { p: [4.6, 3.6, 5.2], k: 1, t: '栗木心柱', d: '一根栗木大柱從地面貫穿到屋頂，旁邊是磚造的蓄熱爐，煙囪穿出屋面。' },
+      { p: [3.6, 4.4, 3.4], k: 1, t: '二樓的木箱', d: '圖書室和兩個工作室是放在木構架裡的幾個木箱。' },
+      { p: [3.6, 7.5, 4.2], k: 2, t: '金屬屋頂', d: '分解軸測圖把建築分成「天、人、地」三層：金屬屋頂、木構與木箱、混凝土基礎。把分解滑桿拉開就是這三層。' },
+      { p: [11.5, 5.2, 20.5], k: 0, t: '既有的櫻花樹', d: '主要入口朝南，對著基地上原有的一棵櫻花樹。' }
+    ],
+    build: function (c) {
+      var conc = mat(0x9f9b91), earth = mat(0x9c8468), wood = mat(0xb08650), woodD = mat(0x8f6a44), metal = mat(0x6f777c, { rough: 0.5 }), brick = mat(0xa3583d), hole = mat(0x3a3d42);
+      var grass = mat(0x7f9a5c, { noClip: true, clay: 0xbdb8ac }), path = mat(0xb3ab98, { noClip: true, clay: 0xb3aea2 }), trunk = mat(0x6b5a48, { noClip: true, clay: 0xaeaa9e }), leafM = mat(0x4a7c40, { noClip: true, clay: 0xb9b4a8 }), cherry = mat(0xd08fa2, { noClip: true, clay: 0xb9b4a8 });
+      var g0 = level(c, 0), g1 = level(c, 1), g2 = level(c, 2);
+      // earth: foundation and the earthen floor
+      box(-0.15, 7.45, 0, 0.4, -0.15, 9.25, conc, g0);
+      box(3.4, 10.9, 0, 0.12, 4.5, 13, earth, g0);
+      // people: timber walls, the upper boxes, heart pillar and masonry heater
+      box(0, 3.5, 0.4, 3.0, 0, 9.1, wood, g1); box(3.5, 7.3, 0.4, 3.0, 0, 2.7, wood, g1);
+      [[3.5, 2.7], [7.3, 2.7], [7.3, 9.1], [3.5, 9.1], [5.4, 9.1], [7.3, 5.9]].forEach(function (p) { cyl(p[0], p[1], 0.4, 3.0, 0.09, woodD, g1, 8); });
+      box(0, 7.3, 3.0, 3.2, 0, 9.1, woodD, g1);
+      box(0, 7.3, 3.2, 5.3, 0, 6.4, wood, g1); box(0, 3.6, 3.2, 5.3, 6.4, 9.1, wood, g1);
+      [[0.8, 2.6, 3.9, 4.8, -0.04, 0.04], [4.4, 6.6, 3.9, 4.8, -0.04, 0.04], [7.26, 7.34, 3.8, 4.9, 1.2, 4.6]].forEach(function (o) { box(o[0], o[1], o[2], o[3], o[4], o[5], hole, g1); });
+      cyl(4.6, 5.2, 0.4, 7.0, 0.18, woodD, g1);
+      box(4.9, 5.9, 0.4, 2.0, 5.6, 6.6, brick, g1);
+      cyl(5.4, 6.1, 2.0, 8.6, 0.12, metal, g1, 10);
+      // sky: the main roof and the low roofs that wind around it
+      profile([[1.6, 6.2], [4.2, 7.34], [9.7, 5.2], [9.7, 5.0], [4.2, 7.14], [1.6, 6.0]], -0.4, 7.7, metal, g2);
+      quad([-0.4, 5.5, 1.8], [7.7, 5.5, 1.8], [7.7, 4.4, -0.8], [-0.4, 4.4, -0.8], metal, g2);
+      quad([-1.2, 3.1, 9.1], [10.6, 3.1, 9.1], [11.2, 2.35, 13.2], [-1.2, 2.45, 12.6], metal, g2);
+      quad([7.3, 3.5, 1.4], [7.3, 3.2, 9.1], [10.6, 3.1, 9.1], [10.9, 2.7, 1.8], metal, g2);
+      [[-1.0, 12.4, 2.45], [3.2, 12.8, 2.4], [7.2, 13.0, 2.37], [10.9, 12.9, 2.36], [10.7, 5.5, 2.9], [10.7, 2.0, 2.72]].forEach(function (p) { cyl(p[0], p[1], 0, p[2], 0.07, woodD, g2, 8); });
+      // woodland
+      var s = c.ctx;
+      box(-22, 32, -0.1, 0, -20, 34, grass, s, true);
+      prism([[2, 13], [9, 13], [12, 34], [0, 34]], 0, 0.03, path, s, true);
+      [[-8, -4, 11], [-12, 6, 13], [-6, 15, 10], [-14, 20, 12], [16, -6, 12], [20, 4, 11], [18, 14, 13], [24, 22, 10], [4, -12, 12], [-3, -14, 11], [12, -13, 13], [-16, -8, 10], [26, -2, 12], [-10, 28, 11], [20, 30, 12]].forEach(function (p) { tree(p[0], p[1], p[2], 2.6, trunk, leafM, s); });
+      tree(11.5, 20.5, 6.5, 2.5, trunk, cherry, s);
+      person(6.4, 0.12, 10.6, 0, s); person(8.6, 0.12, 7.2, 3, s); person(1.5, 0, 12.2, 1, s);
+    }
+  };
+
+  // ---------- assemble ----------
+  var order = ['afer', 'leaf', 'court', 'miyota'], current = 'afer', comparing = false;
+  var compareRef = new THREE.Group(); scene.add(compareRef); compareRef.visible = false;
+  order.forEach(function (k) {
+    var c = CASES[k];
+    c.root = new THREE.Group(); c.ctx = new THREE.Group(); c.levels = [];
+    c.root.add(c.ctx); scene.add(c.root);
+    c.build(c);
+    c.root.visible = false;
+  });
+  (function () {
+    // Machan's 31 m by 6 m footprint as a yardstick in the comparison view
+    var m = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(31, 9, 6.2)), new THREE.LineBasicMaterial({ color: 0xb02a78 }));
+    m.position.set(15.5, 4.5, 3.1); compareRef.add(m);
+  })();
+  var ground = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600), mat(0x9a968a, { noClip: true, clay: 0xc2c0b8 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.14; ground.receiveShadow = true; scene.add(ground);
+  var boxLine = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0xb02a78 }));
+  boxLine.visible = false; scene.add(boxLine);
+
+  // ---------- state ----------
+  var explode = 0, hour = 14, boxScale = 0, tween = null, pins = [], bounds = null;
+  function applyLooks() {
+    allMats.forEach(function (e) { e.m.color.setHex(mode === 'clay' ? e.clay : e.hex); });
+    var bg = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue(mode === 'clay' ? '--clay-bg' : '--sky').trim() || '#d3dde3');
+    scene.background = bg; scene.fog = new THREE.Fog(bg.getHex(), comparing ? 900 : 300, comparing ? 1900 : 1100);
+    updateLight();
+  }
+  function updateLight() {
+    var c = CASES[current], rad = Math.PI / 180, lat = (comparing ? 23.5 : c.lat) * rad, H = (hour - 12) * 15 * rad;
+    var sa = Math.cos(lat) * Math.cos(H), alt = Math.asin(sa), ca = -sa * Math.sin(lat) / (Math.cos(alt) * Math.cos(lat));
+    var az = Math.acos(Math.max(-1, Math.min(1, ca))); if (hour > 12) az = 2 * Math.PI - az;
+    var a = Math.max(alt, 5 * rad), R = bounds ? bounds.R : 60;
+    sun.target.position.set(bounds ? bounds.cx : 0, 0, bounds ? bounds.cz : 0);
+    // azimuth is measured from north (-z) through east (+x)
+    sun.position.set(sun.target.position.x + Math.sin(az) * Math.cos(a) * R * 3, Math.sin(a) * R * 3, sun.target.position.z - Math.cos(az) * Math.cos(a) * R * 3);
+    var s = sun.shadow.camera; s.left = -R * 1.5; s.right = R * 1.5; s.top = R * 1.5; s.bottom = -R * 1.5; s.near = R * 0.5; s.far = R * 6; s.updateProjectionMatrix();
+    sun.shadow.normalBias = 0.03 * R / 30;
+    var k = Math.max(0.12, Math.min(1, Math.sin(alt) * 1.9));
+    if (mode === 'clay') { sun.intensity = 0.3 + 0.45 * k; sun.color.setRGB(1, 1, 1); hemi.color.setRGB(1, 1, 1); hemi.groundColor.setHex(0xb0aba0); hemi.intensity = 0.5; }
+    else { sun.intensity = 0.3 + 0.6 * k; sun.color.setRGB(1, 0.86 + 0.1 * k, 0.7 + 0.2 * k); hemi.color.setHex(0xdfeaf2); hemi.groundColor.setHex(0x8f8576); hemi.intensity = 0.36 + 0.12 * k; }
+    invalidate();
+  }
+  function setBounds() {
+    if (comparing) {
+      var x = 0, zmax = 0, hmax = 0;
+      order.forEach(function (k) { var b = CASES[k].bounds; CASES[k].root.position.set(x - b.x0, 0, -b.z0); x += (b.x1 - b.x0) + 9; zmax = Math.max(zmax, b.z1 - b.z0); hmax = Math.max(hmax, b.h); });
+      compareRef.position.set(x, 0, 0); x += 31;
+      bounds = { cx: x / 2, cz: zmax / 2, w: x, d: zmax, h: hmax };
+    } else {
+      order.forEach(function (k) { CASES[k].root.position.set(0, 0, 0); });
+      var b = CASES[current].bounds;
+      bounds = { cx: (b.x0 + b.x1) / 2, cz: (b.z0 + b.z1) / 2, w: b.x1 - b.x0, d: b.z1 - b.z0, h: b.h };
+    }
+    bounds.R = comparing ? bounds.w * 0.36 : Math.max(bounds.w, bounds.d, bounds.h * 1.3) * 0.75;
+  }
+  function viewOf(name) {
+    var b = bounds, R = b.R, t = [b.cx, b.h * 0.38, b.cz];
+    // in the comparison row, size every view so the full width fits the viewport
+    if (comparing && name !== 'east') R = (b.w * 0.56) / (Math.tan(camera.fov * Math.PI / 360) * Math.max(camera.aspect, 0.4)) / 2.9;
+    if (name === 'south') return { p: [b.cx, b.h * 0.5, b.cz + R * 2.9], t: t };
+    if (name === 'east') return { p: [b.cx + R * 2.9, b.h * 0.5, b.cz], t: t };
+    if (name === 'north') return { p: [b.cx - (comparing ? 0 : R * 0.5), b.h * 0.7, b.cz - R * (comparing ? 2.9 : 2.7)], t: t };
+    if (name === 'top') return { p: [b.cx, R * 3.4, b.cz + 0.05], t: [b.cx, 0, b.cz] };
+    if (comparing) {
+      // fit the whole row to the viewport width, whatever the aspect ratio
+      var half = Math.tan(camera.fov * Math.PI / 360) * Math.max(camera.aspect, 0.4);
+      var dist = (b.w * 0.56) / half, dir = new THREE.Vector3(0.1, 0.5, 1).normalize();
+      return { p: [b.cx + dir.x * dist, b.h * 0.3 + dir.y * dist, b.cz + dir.z * dist], t: [b.cx, b.h * 0.3, b.cz] };
+    }
+    var a = CASES[current].aerial || [1.5, 2.0];
+    return { p: [b.cx + R * a[0], b.h * 0.6 + R * 1.25, b.cz + R * a[1]], t: t };
+  }
+  function go(name, instant) {
+    var v = viewOf(name), to = { p: new THREE.Vector3().fromArray(v.p), t: new THREE.Vector3().fromArray(v.t) };
+    if (instant || reduceMotion) { camera.position.copy(to.p); controls.target.copy(to.t); controls.update(); invalidate(); return; }
+    tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: to.p, t1: to.t, s: performance.now() };
+  }
+  function applyExplode() {
+    order.forEach(function (k) { var c = CASES[k]; c.levels.forEach(function (g, i) { if (g) g.position.y = i * explode * c.step; }); });
+    invalidate();
+  }
+  function updateBox() {
+    var out = $('boxOut'), c = CASES[current];
+    if (!boxScale || comparing) { boxLine.visible = false; out.textContent = comparing ? '比較模式不顯示模型盒。' : '選一個比例尺，場景中會出現15×15×7cm模型盒代表的實際範圍。'; invalidate(); return; }
+    var s = boxScale / 100, w = 15 * s, h = 7 * s, b = bounds;
+    boxLine.scale.set(w, h, w); boxLine.position.set(b.cx, h / 2, b.cz); boxLine.visible = true;
+    var fit = b.w <= w && b.d <= w && b.h <= h;
+    out.textContent = '盒子代表實際' + w.toFixed(1) + '×' + w.toFixed(1) + '×' + h.toFixed(1) + 'm。建築縮小後約' + (b.w / s).toFixed(1) + '×' + (b.d / s).toFixed(1) + '×' + (b.h / s).toFixed(1) + 'cm，' + (fit ? '整棟放得下。' : '放不下整棟，要取局部或換比例尺。');
+    out.className = 'readout' + (fit ? '' : ' warn');
+    invalidate();
+  }
+  function fill() {
+    var c = CASES[current];
+    $('caseName').textContent = comparing ? '四案同比例尺比較' : c.name;
+    $('caseCard').hidden = comparing; $('placeCard').hidden = comparing; $('compareCard').hidden = !comparing;
+    var f = $('facts'); f.textContent = '';
+    c.facts.forEach(function (r) { var dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = r[0]; dd.textContent = r[1]; f.appendChild(dt); f.appendChild(dd); });
+    var l = $('links'); l.textContent = '資料來源：';
+    c.src.forEach(function (r) { var a = document.createElement('a'); a.href = r[1]; a.target = '_blank'; a.rel = 'noopener'; a.textContent = r[0]; l.appendChild(a); });
+    ['dimL', 'dimW', 'dimH'].forEach(function (id, i) { $(id).textContent = c.dims[i]; });
+    $('limits').textContent = c.limits;
+    $('sunNote').textContent = '日照以春分、秋分估算，緯度' + (comparing ? '取北緯23.5度' : (c.lat < 0 ? '南緯' : '北緯') + Math.abs(c.lat).toFixed(1) + '度') + '。北方在畫面的遠端（鳥瞰時），剖切從南側往北切入。';
+    var seg = $('boxSeg'); seg.textContent = '';
+    [0].concat(c.scales).forEach(function (s) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = s ? '1:' + s : '不顯示'; b.setAttribute('aria-pressed', s === boxScale ? 'true' : 'false');
+      b.addEventListener('click', function () { boxScale = s; Array.prototype.forEach.call(seg.children, function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); updateBox(); });
+      seg.appendChild(b);
+    });
+    // numbered places
+    labelsEl.textContent = ''; $('places').textContent = ''; pins = [];
+    var det = $('detail'); det.textContent = '';
+    var st = document.createElement('strong'); st.textContent = '點選編號'; det.appendChild(st);
+    var sp = document.createElement('span'); sp.className = 'note'; sp.textContent = '模型上的圓點和下方清單是對應的。'; det.appendChild(sp);
+    if (comparing) return;
+    c.places.forEach(function (pl, i) {
+      var pin = document.createElement('button'); pin.type = 'button'; pin.className = 'pin'; pin.textContent = String(i + 1); pin.title = pl.t;
+      pin.setAttribute('aria-label', (i + 1) + ' ' + pl.t); pin.setAttribute('aria-pressed', 'false');
+      var li = document.createElement('li'), bt = document.createElement('button'); bt.type = 'button'; bt.setAttribute('aria-pressed', 'false');
+      var n = document.createElement('span'); n.className = 'n'; n.textContent = String(i + 1);
+      var tx = document.createElement('span'); tx.textContent = pl.t; bt.appendChild(n); bt.appendChild(tx); li.appendChild(bt);
+      function pick() {
+        pins.forEach(function (q, j) { q.pin.setAttribute('aria-pressed', j === i ? 'true' : 'false'); q.item.setAttribute('aria-pressed', j === i ? 'true' : 'false'); });
+        det.textContent = '';
+        var a = document.createElement('strong'); a.textContent = (i + 1) + '　' + pl.t; var b = document.createElement('span'); b.textContent = pl.d; det.appendChild(a); det.appendChild(b);
+      }
+      pin.addEventListener('click', pick); bt.addEventListener('click', pick);
+      labelsEl.appendChild(pin); $('places').appendChild(li);
+      pins.push({ pin: pin, item: bt, pl: pl, v: new THREE.Vector3() });
+    });
+  }
+  function show(key, compare) {
+    comparing = !!compare; if (key) current = key;
+    order.forEach(function (k) { var c = CASES[k]; c.root.visible = comparing || k === current; c.ctx.visible = !comparing && $('ly-context').checked; });
+    compareRef.visible = comparing;
+    Array.prototype.forEach.call(document.querySelectorAll('#caseSeg button'), function (b) { var k = b.getAttribute('data-case'); b.setAttribute('aria-pressed', (comparing ? k === 'compare' : k === current) ? 'true' : 'false'); });
+    boxScale = 0; setBounds(); fill(); updateBox(); applyLooks(); go('aerial', true);
+    $('cut').value = 0; clip.constant = 1e4; $('cutOut').textContent = '關';
+    try { localStorage.setItem('ap-case', comparing ? 'compare' : current); } catch (e) {}
+  }
+
+  // ---------- controls ----------
+  Array.prototype.forEach.call(document.querySelectorAll('#caseSeg button'), function (b) {
+    b.addEventListener('click', function () { var k = b.getAttribute('data-case'); if (k === 'compare') show(null, true); else show(k, false); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
+    b.addEventListener('click', function () {
+      mode = b.getAttribute('data-mode');
+      Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      applyLooks();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#views button'), function (b) { b.addEventListener('click', function () { go(b.getAttribute('data-view')); }); });
+  $('explode').addEventListener('input', function () { explode = parseFloat(this.value); $('explodeOut').textContent = explode.toFixed(1).replace(/\.0$/, '') + 'm'; applyExplode(); });
+  $('cut').addEventListener('input', function () {
+    var v = parseFloat(this.value), b = bounds;
+    if (v <= 0) { clip.constant = 1e4; $('cutOut').textContent = '關'; }
+    else { var z = b.cz + b.d / 2 + 1 - v / 100 * (b.d + 1.5); clip.constant = z; $('cutOut').textContent = Math.round(v) + '%'; }
+    invalidate();
+  });
+  $('sun').addEventListener('input', function () { hour = parseFloat(this.value); var h = Math.floor(hour), m = Math.round((hour - h) * 60); $('sunOut').textContent = h + ':' + (m < 10 ? '0' : '') + m; updateLight(); });
+  $('ly-context').addEventListener('change', function () { order.forEach(function (k) { CASES[k].ctx.visible = !comparing && $('ly-context').checked; }); invalidate(); });
+  $('ly-labels').addEventListener('change', function () { labelsEl.hidden = !this.checked; invalidate(); });
+  controls.addEventListener('start', function () { tween = null; });
+  controls.addEventListener('change', invalidate);
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyLooks);
+    new MutationObserver(applyLooks).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  } catch (e) {}
+
+  function resize() {
+    var w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 52 : 38; camera.updateProjectionMatrix(); invalidate();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+  resize();
+  ['input', 'change', 'click'].forEach(function (ev) { document.addEventListener(ev, invalidate, true); });
+  document.addEventListener('visibilitychange', invalidate);
+
+  var saved = null;
+  try { saved = localStorage.getItem('ap-case'); } catch (e) {}
+  applyLooks();
+  if (saved === 'compare') show(null, true); else show(CASES[saved] ? saved : 'afer', false);
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (document.hidden) return;
+    if (tween) {
+      var t = Math.min(1, (now - tween.s) / 900), k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      camera.position.lerpVectors(tween.p0, tween.p1, k); controls.target.lerpVectors(tween.t0, tween.t1, k);
+      if (t >= 1) tween = null;
+      dirty = true;
+    }
+    if (controls.update()) dirty = true;
+    if (!dirty) return;
+    dirty = false;
+    renderer.render(scene, camera);
+    if (!labelsEl.hidden && pins.length) {
+      var w = stage.clientWidth, h = stage.clientHeight, c = CASES[current];
+      pins.forEach(function (q) {
+        q.v.set(q.pl.p[0], q.pl.p[1] + q.pl.k * explode * c.step, q.pl.p[2]).project(camera);
+        if (q.v.z > 1 || q.v.z < -1 || Math.abs(q.v.x) > 1.05 || Math.abs(q.v.y) > 1.05) { q.pin.hidden = true; return; }
+        q.pin.hidden = false;
+        q.pin.style.transform = 'translate(' + ((q.v.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' + ((-q.v.y * 0.5 + 0.5) * h).toFixed(1) + 'px)';
+      });
+    }
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
