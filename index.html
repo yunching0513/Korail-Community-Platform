@@ -66,6 +66,7 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font-body); f
 .pin[aria-pressed="true"] { background: var(--magenta); border-color: var(--magenta); color: var(--on-accent); }
 .pin:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
 .hint { position: absolute; right: 10px; top: 8px; margin: 0; padding: 2px 8px; border-radius: 4px; background: var(--chip); color: var(--muted); font-size: 12px; pointer-events: none; }
+.credit { position: absolute; right: 10px; top: 36px; max-width: calc(100% - 20px); margin: 0; padding: 2px 8px; border-radius: 4px; background: var(--chip); color: var(--muted); font-size: 11px; pointer-events: none; }
 .views { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
 .views button, .seg button {
   padding: 5px 11px; border: 1px solid var(--line); border-radius: 4px; background: var(--chip); color: var(--fg);
@@ -121,6 +122,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
   .stage { height: 62vh; height: 62svh; min-height: 320px; }
   .panel { overflow: visible; }
   .hint { display: none; }
+  .credit { top: 44px; }
 }
 .pm-opt { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .pm-opt input { accent-color: var(--teal); margin: 0; }
@@ -148,6 +150,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       <button type="button" data-mode="real" aria-pressed="false">擬真</button>
     </div>
     <p class="hint">拖曳旋轉，滾輪或雙指縮放，右鍵或雙指平移</p>
+    <p class="credit" id="satCredit" hidden>影像 ©2026 CNES / Airbus、Maxar Technologies，地圖資料 ©2026 Google</p>
     <div class="views" id="views">
       <button type="button" data-view="aerial">鳥瞰</button>
       <button type="button" data-view="field">從空地看</button>
@@ -224,8 +227,9 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
         <label><input type="checkbox" id="ly-people" checked>人物（寫實／比例）</label>
         <label><input type="checkbox" id="ly-labels" checked>空間編號</label>
         <label><input type="checkbox" id="ly-plan">總體配置構想</label>
+        <label><input type="checkbox" id="ly-sat">衛星影像底圖</label>
       </div>
-      <p class="note">「總體配置構想」是配置圖上畫了、但照片裡看不到的部分：兒童遊戲區、涼亭、階梯地景與瞭望塔，是否已興建還沒查到。</p>
+      <p class="note">「總體配置構想」是配置圖上畫了、但照片裡看不到的部分：兒童遊戲區、涼亭、階梯地景與瞭望塔，是否已興建還沒查到。「衛星影像底圖」是Google Maps衛星影像的截圖，僅供教學研究參考，圖上的地名與標記來自Google Maps；開啟時會先隱藏示意的周邊聚落。</p>
     </section>
 
     <section class="card">
@@ -241,7 +245,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     </section>
     <section class="card">
       <h2>模型的限制</h2>
-      <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。</p>
+      <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。衛星影像底圖以圖上的20m比例尺對位，與模型之間可能有數公尺的偏差，拍攝日期不明。</p>
     </section>
   </aside>
 </div>
@@ -1132,7 +1136,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       mesh: { hex: 0x2fb9a2, op: 0.42 },
       leaf: { hex: 0x4a7d36 }, trunk: { hex: 0x4d3f31 }, ctrunk: { hex: 0x4d3f31 },
       field: { hex: 0xffffff, map: R.dirt, bump: R.dirtB, bs: 0.012 }, earth: { hex: 0xcfc6b6, map: R.dirt }, alley: { hex: 0xa59d90, map: R.dirt }, stage: { hex: 0xc0563a, map: R.dirt },
-      cwall: { hex: 0xffffff, map: R.wall }, croof: { hex: 0xffffff, map: R.roof, bump: R.roofB, bs: 0.022, rough: 0.82 }, far: { hex: 0xb4b2b0, map: R.tower }
+      cwall: { hex: 0xffffff, map: R.wall }, croof: { hex: 0xffffff, map: R.roof, bump: R.roofB, bs: 0.022, rough: 0.82 }, far: { hex: 0x8c8f94, op: 0.5 }
     };
   }
   function applyLooks() {
@@ -1150,6 +1154,9 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       m.needsUpdate = true;
     });
     M.jaaliDepth.map = M.jaali.map; M.jaaliDepth.needsUpdate = true;
+    // In the realistic mode the distant towers are pale, see-through silhouettes: scene fog would paint them the horizon colour.
+    var hazy = mode === 'real';
+    M.far.fog = !hazy; M.far.transparent = hazy; M.far.depthWrite = !hazy; M.far.needsUpdate = true;
     M.string.color.setHex(mode === 'clay' ? 0xb5b0a6 : 0x55504a);
     var col = new THREE.Color();
     inst.forEach(function (it) {
@@ -1198,6 +1205,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     if (mode === 'real') {
       var day = sm(-1.5, 9, deg), night = 1 - sm(-7, 3, deg);
       sun.intensity = 2.15 * day;
+      var dim = 0.06 + 0.52 * day; M.far.color.setRGB(dim, dim * 1.02, dim * 1.06);
       sun.color.copy(key(deg, [[0, 0xff8a48], [6, 0xffb673], [16, 0xffe6c8], [30, 0xfff6ea]])).convertSRGBToLinear();
       var U = sky.material.uniforms;
       pre(key(deg, ZEN), U.zen.value);
@@ -1797,6 +1805,41 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
   var n = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
   n.position.set(32.4, 0.9, 24.5); n.scale.set(1.7, 1.7, 1); site.add(n);
   A.noAO.push(arrow, n);
+
+  // ---------- satellite ground ----------
+  // A Google Maps screenshot laid on the ground, placed with its own 20 m scale bar (96.8 px).
+  // Screenshot pixel (1043, 418) is the north-east corner of the building's footprint.
+  var M_PER_PX = 20 / 96.8, CROP = { x: 590, y: 58, w: 860, h: 787 };
+  function toWorld(px, py) { return [(py - 418) * M_PER_PX, (1043 - px) * M_PER_PX - 0.2]; }
+  var sat = null, hidContext = false, alley = null;
+  site.children.forEach(function (o) { if (o.geometry && o.geometry.parameters && o.geometry.parameters.width === 52) alley = o; });
+  function buildSat(credit) {
+    var nw = toWorld(CROP.x, CROP.y), se = toWorld(CROP.x + CROP.w, CROP.y + CROP.h);
+    var g2 = new THREE.BufferGeometry();
+    g2.setAttribute('position', new THREE.Float32BufferAttribute([nw[0], 0, nw[1], se[0], 0, nw[1], se[0], 0, se[1], nw[0], 0, se[1]], 3));
+    g2.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 1, 1], 2));
+    g2.setIndex([0, 1, 2, 0, 2, 3]); g2.computeVertexNormals();
+    var map = new THREE.TextureLoader().load('assets/site-satellite.jpg', function () { A.invalidate(); }, undefined, function () { credit.textContent = '衛星影像沒有載入成功'; });
+    map.encoding = THREE.sRGBEncoding; map.anisotropy = Math.min(8, A.renderer.capabilities.getMaxAnisotropy());
+    var mesh = new THREE.Mesh(g2, new THREE.MeshStandardMaterial({ map: map, roughness: 1, metalness: 0 }));
+    mesh.position.y = 0.012; mesh.receiveShadow = true;
+    return mesh;
+  }
+  // The study modes use dimmer lights than the realistic one, so the photograph is lifted there to stay readable.
+  function tintSat() { if (!sat) return; var k = A.getMode() === 'real' ? 1 : 1.9; sat.material.color.setRGB(k, k, k); A.invalidate(); }
+  Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) { b.addEventListener('click', tintSat); });
+  var satBox = document.getElementById('ly-sat'), satCredit = document.getElementById('satCredit');
+  if (satBox && satCredit) satBox.addEventListener('change', function () {
+    var on = satBox.checked, ctx = document.getElementById('ly-context');
+    if (on && !sat) { sat = buildSat(satCredit); site.add(sat); tintSat(); }
+    if (sat) sat.visible = on;
+    if (field) field.visible = !on;
+    if (alley) alley.visible = !on;
+    satCredit.hidden = !on;
+    if (on && ctx.checked) { ctx.checked = false; ctx.dispatchEvent(new Event('change', { bubbles: true })); hidContext = true; }
+    else if (!on && hidContext) { ctx.checked = true; ctx.dispatchEvent(new Event('change', { bubbles: true })); hidContext = false; }
+    A.invalidate();
+  });
   A.invalidate();
 })();
 </script>
