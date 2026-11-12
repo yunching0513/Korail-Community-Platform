@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Machan - Korail Community Platform（Paraa，達卡）的互動3D量體模型：圖解、素模、擬真三種顯示方式，可分解、剖切、調整日照。">
+<title>Machan 3D模型</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* base reset */
+html { color-scheme: light; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+
+/* Layout: one-screen viewer. The 3D stage takes the width, a control rail sits on the right, and the two stack on phones. */
+:root {
+  --bg: #e3e4e0;
+  --surface: #f2f2ef;
+  --fg: #22252a;
+  --muted: #5b6169;
+  --line: #c4c6c1;
+  --teal: #14867a;
+  --purple: #5f45b8;
+  --magenta: #b02a78;
+  --on-accent: #ffffff;
+  --sky: #d3dde3;
+  --chip: rgba(255, 255, 255, 0.86);
+  --clay-bg: #dcdcd8;
+  --font-display: "Bricolage Grotesque", "Noto Sans TC", system-ui, sans-serif;
+  --font-body: "Noto Sans TC", system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181b; --surface: #1e2125; --fg: #e9e9e5; --muted: #9ba1a8; --line: #34383d;
+    --teal: #45cdb8; --purple: #a391ee; --magenta: #e868b3; --on-accent: #16181b;
+    --sky: #252f39; --chip: rgba(30, 33, 37, 0.86); --clay-bg: #2b2e33; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16181b; --surface: #1e2125; --fg: #e9e9e5; --muted: #9ba1a8; --line: #34383d;
+  --teal: #45cdb8; --purple: #a391ee; --magenta: #e868b3; --on-accent: #16181b;
+  --sky: #252f39; --chip: rgba(30, 33, 37, 0.86); --clay-bg: #2b2e33; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.6; }
+.app {
+  box-sizing: border-box; height: 100%;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: auto minmax(0, 1fr); gap: 10px 16px;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.head h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+.head p { margin: 0; color: var(--muted); font-size: 13px; }
+.stage { position: relative; min-height: 0; min-width: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--sky); }
+#c { display: block; width: 100%; height: 100%; touch-action: none; outline-offset: -3px; }
+#labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.pin {
+  position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; padding: 0;
+  border: 1.5px solid var(--fg); border-radius: 50%; background: var(--chip); color: var(--fg);
+  font: 500 11px/1 var(--font-mono); cursor: pointer; pointer-events: auto;
+}
+.pin[aria-pressed="true"] { background: var(--magenta); border-color: var(--magenta); color: var(--on-accent); }
+.pin:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.hint { position: absolute; right: 10px; top: 8px; margin: 0; padding: 2px 8px; border-radius: 4px; background: var(--chip); color: var(--muted); font-size: 12px; pointer-events: none; }
+.views { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.views button, .seg button {
+  padding: 5px 11px; border: 1px solid var(--line); border-radius: 4px; background: var(--chip); color: var(--fg);
+  font: 500 13px/1.3 var(--font-body); cursor: pointer;
+}
+.views button:hover, .seg button:hover { border-color: var(--fg); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.mode { position: absolute; left: 10px; top: 8px; }
+.mode button { background: var(--chip); }
+.seg button { background: var(--surface); }
+.seg button[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+.panel { min-height: 0; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.card h2 { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); }
+.card p { margin: 0; }
+.facts { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: 13.5px; line-height: 1.55; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.facts .en { display: block; font-size: 12.5px; color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
+.links a { color: var(--purple); text-underline-offset: 2px; }
+.dims { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.dims div { min-width: 0; }
+.dims dt { font-size: 12px; color: var(--muted); }
+.dims dd { margin: 0; font: 500 17px/1.3 var(--font-mono); font-variant-numeric: tabular-nums; }
+.row { display: grid; grid-template-columns: 5.2em minmax(0, 1fr) 3.6em; align-items: center; gap: 8px; }
+.row label { font-weight: 500; }
+.row output { font: 400 12px var(--font-mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--teal); }
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
+.checks label { display: flex; align-items: center; gap: 6px; min-width: 0; cursor: pointer; }
+.checks input { accent-color: var(--teal); margin: 0; }
+.sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.note { color: var(--muted); font-size: 12.5px; }
+.readout { font: 400 12.5px/1.6 var(--font-mono); font-variant-numeric: tabular-nums; }
+.readout b { font-weight: 500; }
+.warn { color: var(--magenta); }
+.places { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.places button {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: baseline; width: 100%; text-align: left;
+  padding: 4px 6px; border: 0; border-radius: 4px; background: none; color: var(--fg); font: 400 13.5px/1.5 var(--font-body); cursor: pointer;
+}
+.places button:hover { background: var(--bg); }
+.places button[aria-pressed="true"] { background: var(--bg); font-weight: 500; }
+.places .n { font: 500 11px var(--font-mono); color: var(--muted); }
+.places button[aria-pressed="true"] .n { color: var(--magenta); }
+.detail { border-left: 3px solid var(--magenta); padding-left: 10px; }
+.detail strong { display: block; }
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { display: flex; flex-direction: column; height: auto; }
+  .stage { height: 62vh; height: 62svh; min-height: 320px; }
+  .panel { overflow: visible; }
+  .hint { display: none; }
+}
+.pm-opt { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.pm-opt input { accent-color: var(--teal); margin: 0; }
+.pm-out { display: flex; flex-direction: column; gap: 8px; }
+.pm-out h3 { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.4; }
+.pm-out ol { margin: 0; padding-left: 1.4em; display: grid; gap: 3px; }
+.pm-out .k { display: block; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--muted); }
+.pm-out .warn .k { color: var(--magenta); }
+.pm-tag { font: 500 11px var(--font-mono); letter-spacing: .06em; color: var(--magenta); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <h1>Machan 3D模型</h1>
+    <p>Korail Community Platform，Paraa，達卡，2024年12月啟用。依圖面與照片推估的量體模型。</p>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="c" tabindex="0" aria-label="Machan社區平台的3D模型，可拖曳旋轉"></canvas>
+    <div id="labels"></div>
+    <div class="seg mode" id="modeSeg" role="group" aria-label="顯示方式">
+      <button type="button" data-mode="diagram" aria-pressed="true">圖解</button>
+      <button type="button" data-mode="clay" aria-pressed="false">素模</button>
+      <button type="button" data-mode="real" aria-pressed="false">擬真</button>
+    </div>
+    <p class="hint">拖曳旋轉，滾輪或雙指縮放，右鍵或雙指平移</p>
+    <div class="views" id="views">
+      <button type="button" data-view="aerial">鳥瞰</button>
+      <button type="button" data-view="field">從空地看</button>
+      <button type="button" data-view="deck">站上平台</button>
+      <button type="button" data-view="alley">巷道側</button>
+      <button type="button" data-view="top">正上方</button>
+    </div>
+    <div class="fallback" id="fallback" hidden>這個瀏覽器無法啟用WebGL，3D模型沒辦法顯示。請換用新版的Chrome、Edge、Safari或Firefox。</div>
+  </div>
+
+  <aside class="panel">
+    <section class="card">
+      <h2>建築基本資料</h2>
+      <dl class="facts">
+        <dt>名稱</dt><dd>Machan - Korail Community Platform<span class="en">Machan是孟加拉語的「平台」</span></dd>
+        <dt>設計</dt><dd>Paraa（達卡），主持建築師Kazi Arefin<span class="en">設計團隊：A S M Khaled Saifullah、Abdul Kadir、Farhin Iqbal、Saira Jannat、S M Kaikobad</span></dd>
+        <dt>地點</dt><dd>孟加拉達卡，Korail聚落的Ershad Maidan<span class="en">聚落裡少數的開放空地，緊鄰Banani與Gulshan</span></dd>
+        <dt>年代</dt><dd>2024年12月啟用<span class="en">ArchDaily記為2025年完工</span></dd>
+        <dt>規模</dt><dd>建築332㎡，兩層；基地（含空地）1,858㎡</dd>
+        <dt>機能</dt><dd>多功能室、遊戲區、階梯座位、策展空間、論壇與舞台、互動展廊</dd>
+        <dt>構造</dt><dd>鋼筋混凝土框架、在地燒製的孔洞磚、磚鋪地面、彩色鋼構遮棚</dd>
+        <dt>結構</dt><dd>Gravity Engineers（Masrur Kabir）</dd>
+        <dt>過程</dt><dd>60多場參與式工作坊與駐地計畫，與Korail的青年、社區領袖和學生共同設計</dd>
+        <dt>資助</dt><dd>德國聯邦外交部創意經濟計畫<span class="en">夥伴：歌德學院孟加拉分院、Floating e.V.；屬「Korail: City of Culture」計畫</span></dd>
+        <dt>獎項</dt><dd>Ammodo Architecture Award 2025，社會參與類</dd>
+      </dl>
+      <p class="links">資料來源：<a href="https://www.archdaily.com/1182488/machan-korail-community-platform-paraa" target="_blank" rel="noopener">ArchDaily</a><a href="https://www.ammodo-architecture.org/projects/machankorail-community-platform" target="_blank" rel="noopener">Ammodo Architecture</a><a href="https://www.paraa.org/projects/machan" target="_blank" rel="noopener">Paraa</a></p>
+    </section>
+
+    <section class="card" id="pm">
+      <h2>模型提案 15×15×7cm</h2>
+      <p class="note">同一個盒子，五個比例尺，貫穿的主題是「留空」：磚與磚之間的洞、牆上的洞、架空的地面層、聚落裡的空地、低矮聚落上方的天空。</p>
+      <div class="seg" id="pmSeg" role="group" aria-label="模型比例尺">
+        <button type="button" data-scale="0" aria-pressed="true">不顯示</button>
+        <button type="button" data-scale="1" aria-pressed="false">1:1</button>
+        <button type="button" data-scale="10" aria-pressed="false">1:10</button>
+        <button type="button" data-scale="100" aria-pressed="false">1:100</button>
+        <button type="button" data-scale="500" aria-pressed="false">1:500</button>
+        <button type="button" data-scale="1000" aria-pressed="false">1:1000</button>
+      </div>
+      <label class="pm-opt" id="pmClipRow" hidden><input type="checkbox" id="pmClip" checked>只顯示盒內，切出模型的範圍</label>
+      <div class="row" id="pmPosRow" hidden><label for="pmPos">取哪一段</label><input id="pmPos" type="range" min="7.5" max="23.5" step="0.5" value="15.5"><output id="pmPosOut" for="pmPos">中段</output></div>
+      <div class="pm-out" id="pmOut"></div>
+    </section>
+
+    <section class="card">
+      <h2>推估尺寸</h2>
+      <dl class="dims">
+        <div><dt>長</dt><dd>約31m</dd></div>
+        <div><dt>寬</dt><dd>約5m</dd></div>
+        <div><dt>最高</dt><dd>約9m</dd></div>
+      </dl>
+      <p class="note">這不是測繪。圖面的比例尺互相矛盾（換算長度25至31m），這裡採用與官方面積332㎡最吻合的31m，高度再用照片中的人物比例校正。</p>
+    </section>
+
+    <section class="card">
+      <h2>觀察方式</h2>
+      <div class="row"><label for="explode">分解</label><input id="explode" type="range" min="0" max="5" step="0.1" value="0"><output id="explodeOut" for="explode">0m</output></div>
+      <div class="row"><label for="cut">剖切</label><input id="cut" type="range" min="0" max="100" step="1" value="0"><output id="cutOut" for="cut">關</output></div>
+      <div class="row"><label for="sun">日照時間</label><input id="sun" type="range" min="6.5" max="18.5" step="0.25" value="15.5"><output id="sunOut" for="sun">15:30</output></div>
+      <p class="note">分解會把地面層、平台、上層磚牆、鋼構遮棚逐層拉開。剖切從面向空地的一側往巷道切入。日照以達卡（北緯23.8度）冬季乾季估算，日落約在17:20。</p>
+      <p class="note">畫面左上角可以切換顯示方式。圖解用顏色區分構件；素模是單色量體，接近白模的讀法；擬真加上材質、天空、霧霾和陰影，把時間拉到17:30以後會點亮燈籠。</p>
+    </section>
+
+    <section class="card">
+      <h2>圖層</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="ly-canopy" checked><span class="sw" style="background:var(--teal)"></span>鋼構遮棚</label>
+        <label><input type="checkbox" id="ly-upper" checked><span class="sw" style="background:var(--muted)"></span>上層磚牆</label>
+        <label><input type="checkbox" id="ly-deck" checked><span class="sw" style="background:var(--line)"></span>二樓平台</label>
+        <label><input type="checkbox" id="ly-ground" checked><span class="sw" style="background:var(--fg)"></span>地面層</label>
+        <label><input type="checkbox" id="ly-context" checked>周邊聚落</label>
+        <label><input type="checkbox" id="ly-people" checked>人物（1.6m）</label>
+        <label><input type="checkbox" id="ly-labels" checked>空間編號</label>
+        <label><input type="checkbox" id="ly-plan">總體配置構想</label>
+      </div>
+      <p class="note">「總體配置構想」是配置圖上畫了、但照片裡看不到的部分：兒童遊戲區、涼亭、階梯地景與瞭望塔，是否已興建還沒查到。</p>
+    </section>
+
+    <section class="card">
+      <h2>空間說明</h2>
+      <div class="detail" id="detail"><strong>點選編號</strong><span class="note">模型上的圓點和下方清單是對應的。</span></div>
+      <ul class="places" id="places"></ul>
+    </section>
+
+    <section class="card">
+      <h2>模型的限制</h2>
+      <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。</p>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/SSAOShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/math/SimplexNoise.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
+<script>
+(function () {
+  'use strict';
+  var stage = document.getElementById('stage');
+  var canvas = document.getElementById('c');
+  var labelsEl = document.getElementById('labels');
+  var renderer;
+  try {
+    if (!window.THREE || !THREE.OrbitControls) throw new Error('three');
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  } catch (e) {
+    document.getElementById('fallback').hidden = false;
+    canvas.hidden = true;
+    document.getElementById('views').hidden = true;
+    return;
+  }
+  var small = Math.min(window.innerWidth, window.innerHeight) < 700;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(38, 1, 0.3, 1200);
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI / 2 - 0.02;
+  controls.minDistance = 3;
+  controls.maxDistance = 170;
+
+  // ---------- coordinates ----------
+  // x runs north to south along the building (0..31 m), z runs from the alley (0) to the field (+), y is up.
+  var L = 31;
+  var T = 0.8; // metres covered by one texture tile
+
+  // ---------- textures ----------
+  function brickCanvas(holes) {
+    var S = 256, c = document.createElement('canvas');
+    c.width = c.height = S;
+    var g = c.getContext('2d');
+    g.fillStyle = '#8d887e';
+    g.fillRect(0, 0, S, S);
+    var rows = 4, rh = S / rows, bw = S / 2, seed = 11;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    for (var r = 0; r < rows; r++) {
+      var off = (r % 2) * bw / 2;
+      for (var k = -1; k < 3; k++) {
+        var x = k * bw + off, v = 158 + Math.floor(rnd() * 24);
+        g.fillStyle = 'rgb(' + (v + 8) + ',' + (v + 3) + ',' + (v - 8) + ')';
+        if (holes) {
+          g.fillRect(x + 2, r * rh + 2, 76, rh - 4);
+          g.fillRect(x + 78, r * rh + 2, 50, rh - 4);
+          g.clearRect(x + 82, r * rh + 13, 42, rh - 26);
+        } else {
+          g.fillRect(x + 2, r * rh + 2, bw - 4, rh - 4);
+        }
+      }
+    }
+    return c;
+  }
+  function makeTex(c) {
+    var t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    return t;
+  }
+  var brickTex = makeTex(brickCanvas(false));
+  var jaaliTex = makeTex(brickCanvas(true));
+
+  // ---------- materials ----------
+  var clip = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e4);
+  var M = {};
+  function std(o) { o.roughness = o.roughness === undefined ? 0.9 : o.roughness; o.metalness = 0; return new THREE.MeshStandardMaterial(o); }
+  M.brick = std({ map: brickTex, side: THREE.DoubleSide });
+  M.jaali = std({ map: jaaliTex, alphaTest: 0.5, side: THREE.DoubleSide });
+  M.jaaliDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: jaaliTex, alphaTest: 0.5 });
+  M.conc = std({ color: 0x9c9b94, side: THREE.DoubleSide });
+  M.deck = std({ color: 0xb4afa2, side: THREE.DoubleSide });
+  M.pave = std({ color: 0xa98672, side: THREE.DoubleSide });
+  M.wood = std({ color: 0x7a5a3c, side: THREE.DoubleSide });
+  M.teal = std({ color: 0x1fae98, roughness: 0.6, side: THREE.DoubleSide });
+  M.purple = std({ color: 0x6a48c4, roughness: 0.6, side: THREE.DoubleSide });
+  M.pink = std({ color: 0xb8327f, roughness: 0.6, side: THREE.DoubleSide });
+  M.mesh = std({ color: 0x3fc9b0, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false });
+  M.leaf = std({ color: 0x4f8a45 });
+  M.trunk = std({ color: 0x5b4a3a });
+  var clipMats = [M.brick, M.jaali, M.jaaliDepth, M.conc, M.deck, M.pave, M.wood, M.teal, M.purple, M.pink, M.mesh, M.leaf, M.trunk];
+  clipMats.forEach(function (m) { m.clippingPlanes = [clip]; m.clipShadows = true; });
+  M.field = std({ color: 0xb9925f, roughness: 1 });
+  M.earth = std({ color: 0x9a876c, roughness: 1 });
+  M.alley = std({ color: 0x8f8778, roughness: 1 });
+  M.stage = std({ color: 0xa5462c, roughness: 1 });
+  M.lanternA = new THREE.MeshStandardMaterial({ color: 0xff9a3c, emissive: 0xff7a1a, emissiveIntensity: 0.55, roughness: 0.8 });
+  M.lanternB = new THREE.MeshStandardMaterial({ color: 0xf2869f, emissive: 0xe0527a, emissiveIntensity: 0.45, roughness: 0.8 });
+  M.lanternC = new THREE.MeshStandardMaterial({ color: 0x7fd6c0, emissive: 0x3fae98, emissiveIntensity: 0.4, roughness: 0.8 });
+  M.string = new THREE.MeshBasicMaterial({ color: 0x55504a });
+  M.sign = std({ color: 0xf1efe8 });
+  M.glow = new THREE.SpriteMaterial({ map: (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 128;
+    var g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.25, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  })(), color: 0xff9a50, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.2, toneMapped: false, visible: false });
+  var allMats = [], noAO = [];
+  function reg(name, m) { allMats.push({ name: name, m: m, hex: m.color.getHex(), map: m.map || null, rough: m.roughness, op: m.opacity, ei: m.emissive ? m.emissiveIntensity : undefined }); return m; }
+
+  // ---------- groups ----------
+  var G = {};
+  ['site', 'context', 'ground', 'deck', 'upper', 'canopy', 'people', 'plan', 'box'].forEach(function (k) { G[k] = new THREE.Group(); scene.add(G[k]); });
+
+  // ---------- builders ----------
+  function worldUV(geo, p) {
+    var pos = geo.attributes.position, nor = geo.attributes.normal, uv = geo.attributes.uv;
+    for (var i = 0; i < pos.count; i++) {
+      var x = pos.getX(i) + p.x, y = pos.getY(i) + p.y, z = pos.getZ(i) + p.z;
+      var nx = Math.abs(nor.getX(i)), ny = Math.abs(nor.getY(i));
+      if (nx > 0.5) uv.setXY(i, z / T, y / T);
+      else if (ny > 0.5) uv.setXY(i, x / T, z / T);
+      else uv.setXY(i, x / T, y / T);
+    }
+    uv.needsUpdate = true;
+  }
+  function box(x0, x1, y0, y1, z0, z1, mat, parent, noShadow) {
+    var geo = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+    var m = new THREE.Mesh(geo, mat);
+    m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    worldUV(geo, m.position);
+    if (mat === M.mesh) noAO.push(m);
+    if (!noShadow) { m.castShadow = true; m.receiveShadow = true; }
+    if (mat === M.jaali) m.customDepthMaterial = M.jaaliDepth;
+    parent.add(m);
+    return m;
+  }
+  function cyl(x, y0, y1, z, r, mat, parent) {
+    var m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, y1 - y0, 12), mat);
+    m.position.set(x, (y0 + y1) / 2, z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
+  }
+  function ball(x, y, z, r, mat, parent, shadow) {
+    var m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), mat);
+    m.position.set(x, y, z);
+    m.castShadow = !!shadow;
+    parent.add(m);
+    return m;
+  }
+  // Steel canopy: a deep coloured fascia whose field-side edge curves inward, with slats below.
+  function canopy(x0, x1, z0, z1, top, mat, mat2, curve, parent) {
+    var t = 0.14, h = 0.42, mx = (x0 + x1) / 2;
+    var s = new THREE.Shape();
+    s.moveTo(x0, z0); s.lineTo(x1, z0); s.lineTo(x1, z1); s.quadraticCurveTo(mx, z1 - 2 * curve, x0, z1); s.lineTo(x0, z0);
+    var hole = new THREE.Path();
+    hole.moveTo(x0 + t, z0 + t); hole.lineTo(x1 - t, z0 + t); hole.lineTo(x1 - t, z1 - t);
+    hole.quadraticCurveTo(mx, z1 - t - 2 * curve, x0 + t, z1 - t); hole.lineTo(x0 + t, z0 + t);
+    s.holes.push(hole);
+    var geo = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 18 });
+    geo.rotateX(Math.PI / 2);
+    var m = new THREE.Mesh(geo, mat);
+    m.position.y = top;
+    m.castShadow = true; m.receiveShadow = true;
+    parent.add(m);
+    var i = 0;
+    for (var x = x0 + 0.5; x < x1 - 0.3; x += 0.55, i++) {
+      var u = (x1 - x) / (x1 - x0);
+      var ze = z1 - 4 * curve * u * (1 - u) - t;
+      box(x - 0.04, x + 0.04, top - 0.3, top - 0.2, z0 + t, ze, i % 3 === 1 ? mat2 : mat, parent);
+    }
+  }
+  function lantern(x, y, z, top, mat, parent) {
+    ball(x, y, z, 0.27, mat, parent, true);
+    var s = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, top - y, 4), M.string);
+    s.position.set(x, (top + y) / 2, z);
+    parent.add(s);
+    var gl = new THREE.Sprite(M.glow);
+    gl.position.set(x, y, z); gl.scale.set(1.7, 1.7, 1);
+    parent.add(gl); noAO.push(gl);
+  }
+  function shrub(x, y, z, r, parent) {
+    var m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), M.leaf);
+    m.position.set(x, y, z); m.scale.y = 0.8; m.castShadow = true;
+    parent.add(m);
+  }
+
+  // ---------- ground floor ----------
+  (function () {
+    var g = G.ground;
+    box(-0.2, L + 0.2, 0, 0.15, -0.2, 3.95, M.pave, g);
+    [0.2, 7.15, 12.8, 17.8, 23.6, 30.8].forEach(function (x) {
+      box(x - 0.15, x + 0.15, 0.15, 3.0, 0.02, 0.32, M.conc, g);
+      box(x - 0.15, x + 0.15, 0.15, 3.0, 3.45, 3.75, M.conc, g);
+    });
+    // alley-side wall
+    box(0.35, 7.0, 0.15, 3.0, 0.05, 0.25, M.jaali, g);
+    box(7.3, 12.65, 0.15, 3.0, 0.05, 0.25, M.brick, g);
+    box(12.95, 23.45, 0.15, 3.0, 0.05, 0.25, M.jaali, g);
+    box(23.75, 30.65, 0.15, 3.0, 0.05, 0.25, M.jaali, g);
+    // north room: jaali base, mesh window above, end wall, folding doors
+    box(0.35, 7.0, 0.15, 1.75, 3.5, 3.7, M.jaali, g);
+    box(0.35, 7.0, 1.75, 3.0, 3.58, 3.62, M.mesh, g, true);
+    box(0.02, 0.24, 0.15, 3.0, 0.3, 3.5, M.jaali, g);
+    box(7.08, 7.2, 0.15, 2.9, 0.35, 1.25, M.wood, g);
+    box(7.08, 7.2, 0.15, 2.9, 2.55, 3.45, M.wood, g);
+    // south room
+    box(23.75, 30.65, 0.15, 1.75, 3.5, 3.7, M.jaali, g);
+    box(23.75, 30.65, 1.75, 3.0, 3.58, 3.62, M.mesh, g, true);
+    box(30.76, 30.98, 0.15, 3.0, 0.3, 3.5, M.jaali, g);
+    box(23.54, 23.66, 0.15, 2.9, 0.35, 1.25, M.wood, g);
+    box(23.54, 23.66, 0.15, 2.9, 2.55, 3.45, M.wood, g);
+    // wide stair that doubles as seating: rises southward from x=8.5 to the deck at x=12.7
+    var n = 14, rise = 3.15 / n, run = 4.2 / n;
+    for (var i = 0; i < n; i++) {
+      box(8.5 + i * run, 8.5 + (i + 1) * run, 0.15, 0.15 + (i + 1) * rise, 0.4, 3.3, M.conc, g);
+    }
+    // stair tower projecting toward the field
+    box(8.4, 11.2, 0, 4.6, 5.78, 6.0, M.jaali, g);
+    box(8.4, 8.62, 0, 4.6, 3.75, 5.78, M.jaali, g);
+    box(10.98, 11.2, 0, 4.6, 3.75, 5.78, M.brick, g);
+    box(8.4, 8.62, 3.0, 4.6, 3.5, 3.75, M.brick, g);
+    box(8.62, 10.98, 3.0, 3.3, 3.75, 5.78, M.deck, g);
+    // arch bay beside the tower
+    var s = new THREE.Shape();
+    s.moveTo(11.2, 0); s.lineTo(12.8, 0); s.lineTo(12.8, 4.3); s.lineTo(11.2, 4.3); s.lineTo(11.2, 0);
+    var a = new THREE.Path();
+    a.moveTo(11.55, 0); a.lineTo(11.55, 1.5); a.absarc(12.0, 1.5, 0.45, Math.PI, 0, true); a.lineTo(12.45, 0); a.lineTo(11.55, 0);
+    s.holes.push(a);
+    var ag = new THREE.ExtrudeGeometry(s, { depth: 0.24, bevelEnabled: false, curveSegments: 14 });
+    var am = new THREE.Mesh(ag, M.brick);
+    am.position.z = 5.0;
+    worldUV(ag, am.position);
+    am.castShadow = true; am.receiveShadow = true;
+    g.add(am);
+    box(11.6, 12.4, 2.5, 3.2, 5.24, 5.27, M.sign, g, true);
+    // tree growing through the void
+    cyl(20.4, 0.15, 5.4, 1.1, 0.09, M.trunk, g);
+    var ring = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.45, 20), M.conc);
+    ring.position.set(20.4, 0.37, 1.1); ring.castShadow = true; ring.receiveShadow = true; g.add(ring);
+    shrub(20.4, 6.2, 1.1, 1.25, g); shrub(21.0, 5.6, 1.5, 0.9, g); shrub(19.8, 5.7, 0.8, 0.95, g);
+  })();
+
+  // ---------- first-floor deck ----------
+  (function () {
+    var g = G.deck;
+    function slab(x0, x1, y0, y1, z0, z1) {
+      return box(Math.max(x0, -0.39), Math.min(x1, L + 0.39), y0, y1, Math.max(z0, -0.19), Math.min(z1, 4.99), M.deck, g);
+    }
+    // slab with openings for the stair and the tree
+    slab(-0.4, 8.4, 3.0, 3.3, -0.2, 5.0);
+    slab(8.4, 12.4, 3.0, 3.3, -0.2, 0.4);
+    slab(8.4, 12.4, 3.0, 3.3, 3.3, 3.75);
+    slab(11.2, 12.8, 3.0, 3.3, 3.75, 5.0);
+    slab(12.4, 17.7, 3.0, 3.3, -0.2, 5.0);
+    slab(17.7, 21.4, 3.0, 3.3, 2.0, 5.0);
+    slab(17.7, 21.4, 3.0, 3.3, -0.2, 0.12);
+    slab(21.4, L + 0.4, 3.0, 3.3, -0.2, 5.0);
+    // raised terraces at both ends, reached by wide steps
+    slab(-0.4, 5.6, 3.3, 4.3, -0.2, 5.0);
+    slab(21.3, L + 0.4, 3.3, 4.3, -0.2, 5.0);
+    for (var i = 0; i < 4; i++) {
+      slab(5.6 + i * 0.7, 6.3 + i * 0.7, 3.3, 4.3 - i * 0.25, 0.25, 4.75);
+      slab(20.4 - i * 0.9, 21.3 - i * 0.9, 3.3, 4.3 - i * 0.25, 2.2, 4.75);
+    }
+    // parapets: tall band on the north wing, seat-height wall with a purple rail in the middle
+    box(-0.4, 8.4, 3.0, 5.3, 4.75, 5.0, M.brick, g);
+    box(-0.4, -0.16, 3.0, 5.3, -0.2, 4.75, M.brick, g);
+    box(-0.16, 3.4, 3.0, 5.3, -0.2, 0.04, M.brick, g);
+    box(12.8, 21.3, 3.0, 3.85, 4.75, 5.0, M.brick, g);
+    box(21.3, L + 0.4, 3.0, 5.1, 4.75, 5.0, M.brick, g);
+    box(L + 0.16, L + 0.4, 3.0, 5.1, -0.2, 4.75, M.brick, g);
+    box(21.3, 25.4, 3.0, 5.1, -0.2, 0.04, M.brick, g);
+    box(8.4, 12.9, 3.0, 4.4, -0.2, 0.04, M.brick, g);
+    box(15.9, 17.0, 3.0, 4.2, -0.2, 0.04, M.brick, g);
+    box(19.0, 21.3, 3.0, 4.4, -0.2, 0.04, M.brick, g);
+    for (var x = 13.0; x <= 21.2; x += 1.64) cyl(x, 3.3, 4.3, 5.12, 0.04, M.purple, g);
+    box(12.9, 21.3, 4.26, 4.34, 5.08, 5.16, M.purple, g);
+    // planting along the parapets
+    [0.6, 2.2, 3.9, 6.9, 22.6, 24.3, 26.4, 28.6, 30.4].forEach(function (x, k) {
+      shrub(x, 4.65, 4.35, 0.42 + (k % 3) * 0.06, g);
+    });
+    // steel portal frames at both ends (drawn as "future expansion" on the axonometric)
+    [[-1.5, -0.4], [L + 0.4, L + 1.5]].forEach(function (r) {
+      var xa = r[0], xb = r[1], zc0 = 1.0, zc1 = 3.6;
+      [[xa < 0 ? xa : xb - 0.1, zc0], [xa < 0 ? xa : xb - 0.1, zc1 - 0.1]].forEach(function (p) {
+        box(p[0], p[0] + 0.1, 3.0, 5.6, p[1], p[1] + 0.1, M.teal, g);
+      });
+      var xe = xa < 0 ? xa : xb - 0.1;
+      box(xe, xe + 0.1, 5.5, 5.6, zc0, zc1, M.teal, g);
+      box(xa, xb, 3.0, 3.1, zc0, zc0 + 0.1, M.teal, g);
+      box(xa, xb, 3.0, 3.1, zc1 - 0.1, zc1, M.teal, g);
+      box(xa, xb, 5.5, 5.6, zc0, zc0 + 0.1, M.teal, g);
+      box(xa, xb, 5.5, 5.6, zc1 - 0.1, zc1, M.teal, g);
+    });
+  })();
+
+  // ---------- upper brick walls ----------
+  (function () {
+    var g = G.upper;
+    // north tower around the curatorial space
+    box(3.4, 5.9, 4.3, 8.2, 3.4, 3.64, M.jaali, g);
+    box(6.6, 8.3, 3.3, 8.2, 3.4, 3.64, M.brick, g);
+    box(3.4, 3.64, 4.3, 8.2, 0.04, 3.4, M.jaali, g);
+    box(3.64, 8.3, 3.3, 8.2, -0.2, 0.04, M.jaali, g);
+    // tall wall behind the forum
+    box(12.9, 14.3, 3.3, 7.3, -0.2, 0.04, M.brick, g);
+    box(14.3, 15.9, 3.3, 7.3, -0.2, 0.04, M.jaali, g);
+    box(17.0, 18.2, 3.3, 7.3, -0.2, 0.04, M.jaali, g);
+    box(18.2, 19.0, 3.3, 7.3, -0.2, 0.04, M.brick, g);
+    box(12.9, 13.14, 3.3, 7.3, 0.04, 2.0, M.jaali, g);
+    box(17.7, 21.3, 3.3, 6.0, 2.0, 2.22, M.jaali, g);
+    // south tower around the interactive gallery
+    box(25.4, 30.4, 4.3, 8.6, 3.46, 3.7, M.jaali, g);
+    box(30.16, 30.4, 4.3, 8.6, 0.04, 3.46, M.jaali, g);
+    box(25.4, 30.4, 4.3, 8.6, -0.2, 0.04, M.jaali, g);
+    box(25.4, 25.64, 4.3, 8.6, 0.04, 1.5, M.brick, g);
+    box(21.8, 22.7, 4.3, 8.6, 3.46, 3.7, M.brick, g);
+    box(21.8, 22.7, 4.3, 8.6, -0.2, 0.04, M.brick, g);
+  })();
+
+  // ---------- steel canopies, cage, lanterns ----------
+  (function () {
+    var g = G.canopy;
+    canopy(3.2, 8.5, -0.3, 4.1, 8.62, M.purple, M.teal, 0.55, g);
+    canopy(12.7, 21.0, -0.3, 3.3, 7.72, M.pink, M.purple, 0.6, g);
+    canopy(21.6, 30.6, -0.3, 4.2, 9.02, M.teal, M.purple, 0.7, g);
+    cyl(12.85, 3.3, 7.3, 3.15, 0.05, M.pink, g);
+    cyl(20.85, 6.0, 7.3, 2.1, 0.05, M.pink, g);
+    // teal cage over the stair tower, with its roof reaching over the arch bay
+    var y0 = 4.6, y1 = 7.1;
+    [[8.4, 3.5, y0], [8.4, 5.9, y0], [11.1, 5.9, y0], [11.1, 3.5, 3.3], [12.7, 5.14, 4.3], [12.7, 3.5, 3.3]].forEach(function (p) {
+      box(p[0], p[0] + 0.1, p[2], y1, p[1], p[1] + 0.1, M.teal, g);
+    });
+    box(8.4, 11.2, y1 - 0.3, y1, 5.9, 6.0, M.teal, g);
+    box(8.4, 12.8, y1 - 0.3, y1, 3.5, 3.6, M.teal, g);
+    box(8.4, 8.5, y1 - 0.3, y1, 3.6, 5.9, M.teal, g);
+    box(11.1, 11.2, y1 - 0.3, y1, 3.6, 5.9, M.teal, g);
+    box(11.2, 12.8, y1 - 0.3, y1, 5.14, 5.24, M.teal, g);
+    box(12.7, 12.8, y1 - 0.3, y1, 3.6, 5.14, M.teal, g);
+    for (var x = 8.9, i = 0; x < 12.6; x += 0.5, i++) {
+      if (x > 11.0 && x < 11.3) continue;
+      box(x - 0.035, x + 0.035, y1 - 0.2, y1 - 0.1, 3.6, x < 11.1 ? 5.9 : 5.14, i % 3 === 1 ? M.purple : M.teal, g);
+    }
+    box(8.5, 11.1, y0, y1 - 0.3, 5.93, 5.97, M.mesh, g, true);
+    box(8.43, 8.47, y0, y1 - 0.3, 3.6, 5.9, M.mesh, g, true);
+    lantern(11.8, 5.6, 5.4, 6.85, M.lanternA, g);
+    lantern(12.2, 4.9, 4.6, 6.85, M.lanternB, g);
+    lantern(11.5, 4.4, 4.9, 6.85, M.lanternC, g);
+    lantern(6.2, 7.3, 2.6, 8.25, M.lanternB, g);
+    lantern(16.4, 6.2, 1.6, 7.35, M.lanternA, g);
+    lantern(18.2, 6.5, 2.6, 7.35, M.lanternB, g);
+    lantern(23.6, 7.4, 2.9, 8.65, M.lanternA, g);
+    lantern(24.5, 6.9, 1.8, 8.65, M.lanternB, g);
+  })();
+
+  // ---------- site ----------
+  (function () {
+    var g = G.site;
+    function tile(geo, k) { var uv = geo.attributes.uv, pr = geo.parameters, r = pr.height ? pr.height / pr.width : 1; for (var i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * k, uv.getY(i) * k * r); return geo; }
+    var earth = new THREE.Mesh(tile(new THREE.PlaneGeometry(900, 900), 900 / 8), M.earth);
+    earth.rotation.x = -Math.PI / 2; earth.position.set(15, -0.06, 10); earth.receiveShadow = true; g.add(earth);
+    var field = new THREE.Mesh(tile(new THREE.PlaneGeometry(40, 24.5), 40 / 8), M.field);
+    field.rotation.x = -Math.PI / 2; field.position.set(19.4, 0, 16.2); field.receiveShadow = true; g.add(field);
+    var alley = new THREE.Mesh(tile(new THREE.PlaneGeometry(52, 2.2), 52 / 8), M.alley);
+    alley.rotation.x = -Math.PI / 2; alley.position.set(16, -0.02, -1.3); alley.receiveShadow = true; g.add(alley);
+    var st = new THREE.Mesh(tile(new THREE.CircleGeometry(5, 48), 10 / 8), M.stage);
+    st.rotation.x = -Math.PI / 2; st.position.set(10.5, 0.04, 11.5); st.receiveShadow = true; g.add(st);
+  })();
+
+  // ---------- surrounding settlement (indicative) ----------
+  var inst = [];
+  (function () {
+    var seed = 5;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var cells = [];
+    for (var gx = -42; gx < 76; gx += 5.6) {
+      for (var gz = -34; gz < 62; gz += 5.2) {
+        var w = 3.8 + rnd() * 1.5, d = 3.4 + rnd() * 1.5, x = gx + rnd() * 0.5, z = gz + rnd() * 0.5;
+        var r = rnd(), h = r < 0.7 ? 2.3 + rnd() * 0.6 : (r < 0.96 ? 4.6 + rnd() * 0.9 : 7.0 + rnd() * 1.0);
+        var c = rnd();
+        if (x + w > -9.5 && x < 41.5 && z + d > -2.5 && z < 30.5) continue;
+        cells.push([x, z, w, d, h, c]);
+      }
+    }
+    var unit = new THREE.BoxGeometry(1, 1, 1);
+    M.cwall = std({ color: 0xffffff, roughness: 1 });
+    M.croof = std({ color: 0xffffff, roughness: 0.8 });
+    var walls = new THREE.InstancedMesh(unit, M.cwall, cells.length);
+    var roofs = new THREE.InstancedMesh(unit, M.croof, cells.length);
+    var m4 = new THREE.Matrix4(), col = new THREE.Color(), pos = new THREE.Vector3(), scl = new THREE.Vector3(), q = new THREE.Quaternion();
+    var ax = new THREE.Vector3(1, 0, 0), az = new THREE.Vector3(0, 0, 1);
+    var wallCols = [0x8f8d85, 0x9a968b, 0x827f77, 0xa39d90, 0x7d7266];
+    var roofCols = [0x85563f, 0x6f777d, 0x8c8172, 0x5f7180, 0x96603f, 0x787c72];
+    var wc = [], rc = [];
+    cells.forEach(function (c, i) {
+      m4.makeScale(c[2], c[4], c[3]); m4.setPosition(c[0] + c[2] / 2, c[4] / 2, c[1] + c[3] / 2);
+      walls.setMatrixAt(i, m4);
+      wc.push(wallCols[Math.floor(c[5] * wallCols.length)]);
+      // low-pitched sheet roofs, tilted one way or the other
+      var tilt = (((c[5] * 13.7) % 1) - 0.5) * 0.22, alongX = ((c[5] * 5.1) % 1) > 0.5;
+      q.setFromAxisAngle(alongX ? ax : az, tilt);
+      pos.set(c[0] + c[2] / 2, c[4] + 0.08 + Math.abs(Math.tan(tilt)) * ((alongX ? c[3] : c[2]) / 2 + 0.25), c[1] + c[3] / 2);
+      scl.set(c[2] + 0.5, 0.12, c[3] + 0.5);
+      m4.compose(pos, q, scl);
+      roofs.setMatrixAt(i, m4);
+      rc.push(roofCols[Math.floor(((c[5] * 7.3) % 1) * roofCols.length)]);
+    });
+    walls.castShadow = roofs.castShadow = true; walls.receiveShadow = roofs.receiveShadow = true;
+    G.context.add(walls); G.context.add(roofs);
+    inst.push({ mesh: walls, cols: wc, clay: 0xd8d4ca }, { mesh: roofs, cols: rc, clay: 0xdedad0 });
+    // trees between the houses and along the edge of the field
+    var trees = [[-7.4, 6, 6, 2.8], [-8.2, 12.5, 7, 3.2], [-7, 19.5, 5.5, 2.6], [42.6, 26, 6, 2.6], [8, 32.6, 6.5, 3], [30, 33, 5.5, 2.4], [-5.5, 29, 6.2, 2.7]];
+    for (var i = 0; i < 60; i++) {
+      var tx = -40 + rnd() * 112, tz = -32 + rnd() * 92, th = 4.2 + rnd() * 3.6, tr = 1.7 + rnd() * 1.5;
+      if (tx > -10 && tx < 42 && tz > -3 && tz < 31) continue;
+      trees.push([tx, tz, th, tr]);
+    }
+    M.ctrunk = std({ color: 0x5b4a3a, roughness: 1 });
+    M.ctree = std({ color: 0xffffff, roughness: 1 });
+    var trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.24, 1, 6), M.ctrunk, trees.length);
+    var crowns = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), M.ctree, trees.length * 3);
+    var greens = [0x4f8a45, 0x5d9650, 0x3f7a3d, 0x6a9a4a, 0x55863a], gc = [];
+    q.set(0, 0, 0, 1);
+    trees.forEach(function (t, i) {
+      pos.set(t[0], t[2] / 2, t[1]); scl.set(1, t[2], 1); m4.compose(pos, q, scl); trunks.setMatrixAt(i, m4);
+      for (var k = 0; k < 3; k++) {
+        var a = k * 2.1 + t[0], rr = t[3] * (k === 0 ? 1 : 0.72);
+        pos.set(t[0] + (k ? Math.cos(a) * t[3] * 0.6 : 0), t[2] + rr * 0.45 - (k ? 0.5 : 0), t[1] + (k ? Math.sin(a) * t[3] * 0.6 : 0));
+        scl.set(rr, rr * 0.82, rr); m4.compose(pos, q, scl); crowns.setMatrixAt(i * 3 + k, m4);
+        gc.push(greens[(i + k) % greens.length]);
+      }
+    });
+    trunks.castShadow = crowns.castShadow = true; crowns.receiveShadow = true;
+    G.context.add(trunks); G.context.add(crowns);
+    inst.push({ mesh: crowns, cols: gc, clay: 0xd2cec4 });
+    // distant towers across the lake, as in the aerial photograph
+    M.far = std({ color: 0xa9b5bf, roughness: 1 });
+    for (var k2 = 0; k2 < 26; k2++) {
+      var tw = 13 + rnd() * 13, hh = 26 + rnd() * 56, td = 12 + rnd() * 10;
+      var tower = new THREE.Mesh(new THREE.BoxGeometry(tw, hh, td), M.far);
+      tower.position.set(-170 + k2 * 14 + rnd() * 9, hh / 2, -215 - rnd() * 110);
+      G.context.add(tower);
+    }
+  })();
+
+  // ---------- people for scale ----------
+  (function () {
+    var cols = [0xd8483e, 0xe98a2b, 0x3f7fbf, 0xc9418c, 0x3aa58a, 0xf0c33c, 0x6b57b8, 0xf2f0ea];
+    var heads = reg('head', std({ color: 0x6b4a36 }));
+    function person(x, y, z, k, child) {
+      var s = child ? 0.72 : 1;
+      var b = new THREE.Mesh(new THREE.CylinderGeometry(0.15 * s, 0.2 * s, 1.25 * s, 10), reg('person', std({ color: cols[k % cols.length] })));
+      b.position.set(x, y + 0.625 * s, z); b.castShadow = true; G.people.add(b);
+      var hd = new THREE.Mesh(new THREE.SphereGeometry(0.14 * s, 10, 8), heads);
+      hd.position.set(x, y + 1.43 * s, z); hd.castShadow = true; G.people.add(hd);
+    }
+    [[6, 0, 9, 0], [9, 0, 12.5, 1, 1], [10.2, 0, 11.2, 3, 1], [12.4, 0, 10, 2], [15, 0, 16, 4], [17.2, 0, 13, 5, 1], [22, 0, 9, 6], [24.5, 0, 18, 0, 1], [27, 0, 12, 7], [13.5, 0, 20.5, 1], [19, 0, 22, 2, 1],
+     [14.5, 0.15, 2.3, 3], [16.2, 0.15, 1.4, 5, 1], [26.5, 0.15, 5.2, 4]].forEach(function (p) { person(p[0], p[1], p[2], p[3], p[4]); });
+    var gDeck = new THREE.Group(); G.people.add(gDeck); G.peopleDeck = gDeck;
+    var keep = G.people;
+    G.people = gDeck;
+    [[14.2, 3.3, 3.0, 2], [15.6, 3.3, 4.1, 3, 1], [16.6, 3.3, 2.4, 0], [19.2, 3.8, 3.6, 5, 1], [2.4, 4.3, 2.2, 6], [27.6, 4.3, 1.8, 3], [23.6, 4.3, 4.0, 1, 1], [9.8, 3.3, 4.8, 4]].forEach(function (p) { person(p[0], p[1], p[2], p[3], p[4]); });
+    G.people = keep;
+  })();
+
+  // ---------- masterplan ideas not seen in photographs ----------
+  (function () {
+    var lm = new THREE.LineDashedMaterial({ color: 0xb02a78, dashSize: 0.5, gapSize: 0.3 });
+    function ghost(x0, x1, y1, z0, z1) {
+      var e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(x1 - x0, y1, z1 - z0)), lm);
+      e.position.set((x0 + x1) / 2, y1 / 2, (z0 + z1) / 2); e.computeLineDistances(); G.plan.add(e);
+    }
+    ghost(-2.3, -0.7, 3, 5, 33.7);
+    ghost(-7.2, -2.8, 4, 14.7, 27.2);
+    ghost(0.3, 14.3, 1.2, 28.6, 34);
+    ghost(31.8, 35, 10, 0, 4.7);
+    G.plan.visible = false;
+  })();
+
+  // ---------- 15 x 15 x 7 cm box at model scale ----------
+  var boxLine = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0xb02a78 }));
+  var boxFill = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xb02a78, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide }));
+  boxFill.rotation.x = -Math.PI / 2;
+  G.box.add(boxLine); G.box.add(boxFill); G.box.visible = false; noAO.push(boxFill);
+
+  // ---------- light ----------
+  var hemi = new THREE.HemisphereLight(0xdfe9f2, 0x8f8576, 0.5);
+  scene.add(hemi);
+  var sun = new THREE.DirectionalLight(0xfff1dc, 1.25);
+  sun.castShadow = true;
+  var ms = small ? 2048 : 4096;
+  sun.shadow.mapSize.set(ms, ms);
+  sun.shadow.camera.left = -34; sun.shadow.camera.right = 34; sun.shadow.camera.top = 34; sun.shadow.camera.bottom = -34;
+  sun.shadow.camera.near = 10; sun.shadow.camera.far = 220;
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;
+  sun.target.position.set(15.5, 0, 8);
+  scene.add(sun); scene.add(sun.target);
+  // warm lights for the evening: three under the canopies, three in the ground-floor rooms
+  var lamps = [[11.8, 5.3, 4.9], [16.8, 6.2, 1.8], [24.0, 7.0, 2.4], [3.6, 2.5, 1.9], [15.6, 2.5, 1.9], [27.2, 2.5, 1.9]].map(function (p) {
+    var l = new THREE.PointLight(0xffb066, 0, 15, 2);
+    l.position.set(p[0], p[1], p[2]); l.visible = false; scene.add(l);
+    return l;
+  });
+
+  // ---------- sky dome for the rendered look ----------
+  var sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 32, 16), new THREE.ShaderMaterial({
+    uniforms: { zen: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, sunCol: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3(0, 1, 0) } },
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: [
+      'uniform vec3 zen; uniform vec3 hor; uniform vec3 sunCol; uniform vec3 sunDir; varying vec3 vDir;',
+      'void main(){',
+      '  vec3 d = normalize(vDir);',
+      '  float h = max(d.y, 0.0);',
+      '  vec3 col = mix(hor, zen, pow(h, 0.42));',
+      '  col = mix(col, hor, exp(-h * 9.0) * 0.55);',
+      '  float s = max(dot(d, normalize(sunDir)), 0.0);',
+      '  float up = smoothstep(-0.06, 0.03, sunDir.y);',
+      '  col += sunCol * (pow(s, 900.0) * 6.0 * up + pow(s, 40.0) * 0.22 + pow(s, 6.0) * 0.10) * mix(0.35, 1.0, up);',
+      '  gl_FragColor = vec4(col, 1.0);',
+      '  #include <tonemapping_fragment>',
+      '  #include <encodings_fragment>',
+      '}'].join('\n'),
+    side: THREE.BackSide, depthWrite: false, fog: false
+  }));
+  sky.frustumCulled = false; sky.visible = false; sky.renderOrder = -1;
+  scene.add(sky); noAO.push(sky);
+
+  // ---------- procedural textures for the rendered look (built on first use) ----------
+  function buildRealTextures() {
+    var S = small ? 512 : 1024, u = S / 1024, seed = 7;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    function cv(s) { var c = document.createElement('canvas'); c.width = c.height = s; return c; }
+    function speckle(c, amp) {
+      var g = c.getContext('2d'), im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+      for (var i = 0; i < d.length; i += 4) {
+        if (d[i + 3] === 0) continue;
+        var n = (rnd() - 0.5) * amp;
+        d[i] += n; d[i + 1] += n; d[i + 2] += n;
+      }
+      g.putImageData(im, 0, 0);
+    }
+    function blobs(c, n, rmin, rmax, rgb, alpha) {
+      var g = c.getContext('2d'), s = c.width;
+      g.globalCompositeOperation = 'source-atop';
+      for (var i = 0; i < n; i++) {
+        var x = rnd() * s, y = rnd() * s, r = rmin + rnd() * (rmax - rmin), a = alpha * (0.5 + rnd() * 0.5);
+        for (var ox = -1; ox <= 1; ox++) for (var oy = -1; oy <= 1; oy++) {
+          var cx = x + ox * s, cy = y + oy * s;
+          if (cx + r < 0 || cx - r > s || cy + r < 0 || cy - r > s) continue;
+          var gr = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+          gr.addColorStop(0, 'rgba(' + rgb + ',' + a.toFixed(3) + ')'); gr.addColorStop(1, 'rgba(' + rgb + ',0)');
+          g.fillStyle = gr; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+        }
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+    function tex(c, linear, rep) {
+      var t = makeTex(c);
+      if (linear) t.encoding = THREE.LinearEncoding;
+      if (rep) t.repeat.set(rep, rep);
+      return t;
+    }
+    // grey brick, one tile = 1.6 m: eight courses of 0.4 m bricks
+    function brick(holes) {
+      var c = cv(S), g = c.getContext('2d'), b = cv(S), gb = b.getContext('2d');
+      var rows = 8, rh = S / rows, bw = S / 4, j = Math.max(2, 5 * u), bs = 9;
+      function br() { bs = (bs * 16807) % 2147483647; return bs / 2147483647; }
+      if (!holes) { g.fillStyle = '#77736c'; g.fillRect(0, 0, S, S); }
+      gb.fillStyle = '#4a4a4a'; gb.fillRect(0, 0, S, S);
+      for (var r = 0; r < rows; r++) {
+        var off = (r % 2) * bw / 2, y = r * rh;
+        for (var k = -1; k < 5; k++) {
+          var x = k * bw + off, v = 148 + br() * 44, w = br() * 12;
+          g.fillStyle = 'rgb(' + Math.round(v + 3 + w * 0.2) + ',' + Math.round(v + 1) + ',' + Math.round(v - 3 - w * 0.3) + ')';
+          gb.fillStyle = '#c6c6c6';
+          if (holes) {
+            g.fillRect(x, y, 158 * u, rh); gb.fillRect(x + j, y + j, 152 * u - j, rh - 2 * j);
+            g.fillStyle = 'rgb(' + Math.round(v - 5) + ',' + Math.round(v - 7) + ',' + Math.round(v - 11) + ')';
+            g.fillRect(x + 158 * u, y, 98 * u, rh);
+            g.clearRect(x + 166 * u, y + 26 * u, 82 * u, rh - 52 * u);
+          } else {
+            g.fillRect(x + j, y + j, bw - 2 * j, rh - 2 * j); gb.fillRect(x + j, y + j, bw - 2 * j, rh - 2 * j);
+          }
+        }
+      }
+      g.globalCompositeOperation = 'source-atop';
+      for (var r2 = 0; r2 < rows; r2++) {
+        g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(0, r2 * rh + j, S, Math.max(1, 2 * u));
+        g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(0, r2 * rh + rh - j - 2 * u, S, Math.max(1, 2 * u));
+        if (holes) { g.fillStyle = 'rgba(60,56,50,0.55)'; g.fillRect(0, r2 * rh, S, j * 0.6); }
+      }
+      g.globalCompositeOperation = 'source-over';
+      blobs(c, 40, 40 * u, 170 * u, '40,36,30', 0.13);
+      blobs(c, 24, 40 * u, 150 * u, '255,250,238', 0.09);
+      speckle(c, 24); speckle(b, 34);
+      return { map: tex(c, false, 0.5), bump: tex(b, true, 0.5) };
+    }
+    var B = brick(false), J = brick(true);
+    // board-marked concrete, one tile = 3.2 m
+    var cc = cv(512), g1 = cc.getContext('2d'), cb = cv(512), g2 = cb.getContext('2d');
+    g1.fillStyle = '#a9a69f'; g1.fillRect(0, 0, 512, 512); g2.fillStyle = '#808080'; g2.fillRect(0, 0, 512, 512);
+    for (var y = 0; y < 512; y += 64) { g1.fillStyle = 'rgba(0,0,0,0.10)'; g1.fillRect(0, y, 512, 2); g2.fillStyle = '#5a5a5a'; g2.fillRect(0, y, 512, 2); }
+    for (var s1 = 0; s1 < 16; s1++) { g1.fillStyle = 'rgba(60,55,48,0.05)'; g1.fillRect(rnd() * 512, 0, 6 + rnd() * 16, 512); }
+    blobs(cc, 50, 30, 150, '50,46,40', 0.10); blobs(cc, 30, 30, 140, '255,252,244', 0.08);
+    speckle(cc, 20); speckle(cb, 46);
+    // trodden earth, one tile = 8 m
+    var dc = cv(S), g3 = dc.getContext('2d'), db = cv(512), g4 = db.getContext('2d');
+    g3.fillStyle = '#c0a27c'; g3.fillRect(0, 0, S, S); g4.fillStyle = '#808080'; g4.fillRect(0, 0, 512, 512);
+    blobs(dc, 90, 30 * u, 230 * u, '118,92,62', 0.10); blobs(dc, 80, 30 * u, 220 * u, '238,220,186', 0.11);
+    for (var p = 0; p < 700; p++) { g3.fillStyle = 'rgba(88,72,56,' + (0.15 + rnd() * 0.25).toFixed(2) + ')'; g3.beginPath(); g3.arc(rnd() * S, rnd() * S, (0.8 + rnd() * 2) * u, 0, 6.3); g3.fill(); }
+    speckle(dc, 18); blobs(db, 60, 20, 90, '40,40,40', 0.25); speckle(db, 60);
+    // corrugated sheet roof
+    var rc = cv(256), g5 = rc.getContext('2d');
+    for (var x = 0; x < 256; x++) { var v = Math.round(206 + 34 * Math.sin(x / 256 * Math.PI * 2 * 22)); g5.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')'; g5.fillRect(x, 0, 1, 256); }
+    blobs(rc, 16, 18, 80, '128,74,42', 0.5); blobs(rc, 10, 10, 50, '60,50,44', 0.3);
+    for (var s2 = 0; s2 < 3; s2++) { g5.fillStyle = 'rgba(40,36,32,0.25)'; g5.fillRect(0, rnd() * 256, 256, 2); }
+    speckle(rc, 16);
+    // patched house wall with a door and a window
+    var wc = cv(256), g6 = wc.getContext('2d');
+    g6.fillStyle = '#d6d2c8'; g6.fillRect(0, 0, 256, 256);
+    for (var x2 = 0; x2 < 256; x2 += 51) { g6.fillStyle = 'rgba(0,0,0,0.16)'; g6.fillRect(x2, 0, 2, 256); }
+    g6.fillStyle = 'rgba(0,0,0,0.10)'; g6.fillRect(0, 120, 256, 2);
+    blobs(wc, 22, 20, 90, '70,60,50', 0.16); blobs(wc, 8, 20, 60, '140,84,50', 0.22);
+    g6.fillStyle = '#54453a'; g6.fillRect(96, 150, 44, 106);
+    g6.fillStyle = '#39424b'; g6.fillRect(172, 150, 48, 40); g6.strokeStyle = '#8b8377'; g6.lineWidth = 3; g6.strokeRect(172, 150, 48, 40);
+    speckle(wc, 16);
+    // distant tower facade
+    var tc = cv(256), g7 = tc.getContext('2d'), wins = ['#56677a', '#4a5a6c', '#6b7c8e', '#8fa0ae', '#5e6f80'];
+    g7.fillStyle = '#b4b8ba'; g7.fillRect(0, 0, 256, 256);
+    for (var ty = 0; ty < 16; ty++) for (var tx = 0; tx < 8; tx++) { g7.fillStyle = wins[Math.floor(rnd() * wins.length)]; g7.fillRect(tx * 32 + 4, ty * 16 + 3, 24, 9); }
+    speckle(tc, 8);
+    return { brick: B.map, brickB: B.bump, jaali: J.map, jaaliB: J.bump, conc: tex(cc, false, 0.25), concB: tex(cb, true, 0.25),
+      dirt: tex(dc), dirtB: tex(db, true), roof: tex(rc), wall: tex(wc), tower: tex(tc) };
+  }
+  // plain white screen with the same holes, for the monochrome model
+  var holesTex = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 256;
+    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 256);
+    for (var r = 0; r < 4; r++) for (var k = -1; k < 3; k++) g.clearRect(k * 128 + (r % 2) * 64 + 82, r * 64 + 13, 42, 38);
+    return makeTex(c);
+  })();
+
+  // ---------- display modes: diagram, monochrome model, rendered ----------
+  var mode = 'diagram', hour = 15.5, R = null, composer = null, ssao = null, fxaa = null, finalPass = null, dirty = true, autoHid = false;
+  function invalidate() { dirty = true; }
+  Object.keys(M).forEach(function (k) { if (k !== 'jaaliDepth' && k !== 'string' && k !== 'glow') reg(k, M[k]); });
+  var CLAY = 0xe9e5db;
+  var clayHex = { field: 0xdfdbd1, earth: 0xd5d1c7, alley: 0xcdc9bf, stage: 0xcbc6bc, person: 0xc4bfb5, head: 0xc4bfb5, far: 0xe2dfd7,
+    cwall: 0xffffff, croof: 0xffffff, ctree: 0xffffff, ctrunk: 0xcfcbc1, leaf: 0xd8d4ca, trunk: 0xcfcbc1 };
+  function realLook() {
+    return {
+      brick: { hex: 0xffffff, map: R.brick, bump: R.brickB, bs: 0.012, rough: 0.95 },
+      jaali: { hex: 0xffffff, map: R.jaali, bump: R.jaaliB, bs: 0.012, rough: 0.95 },
+      conc: { hex: 0xffffff, map: R.conc, bump: R.concB, bs: 0.004 },
+      deck: { hex: 0xe2dccd, map: R.conc },
+      pave: { hex: 0xc59a80, map: R.brick },
+      wood: { hex: 0x6e4f33, rough: 0.8 },
+      teal: { hex: 0x12a892, rough: 0.5 }, purple: { hex: 0x6238c8, rough: 0.5 }, pink: { hex: 0xbd2380, rough: 0.5 },
+      mesh: { hex: 0x2fb9a2, op: 0.42 },
+      leaf: { hex: 0x4a7d36 }, trunk: { hex: 0x4d3f31 }, ctrunk: { hex: 0x4d3f31 },
+      field: { hex: 0xffffff, map: R.dirt, bump: R.dirtB, bs: 0.012 }, earth: { hex: 0xcfc6b6, map: R.dirt }, alley: { hex: 0xa59d90, map: R.dirt }, stage: { hex: 0xc0563a, map: R.dirt },
+      cwall: { hex: 0xffffff, map: R.wall }, croof: { hex: 0xffffff, map: R.roof, rough: 0.6 }, far: { hex: 0xb4b2b0, map: R.tower }
+    };
+  }
+  function applyLooks() {
+    var look = mode === 'real' ? realLook() : {};
+    allMats.forEach(function (e) {
+      var m = e.m, o = look[e.name] || {}, hex = e.hex, map = e.map;
+      if (mode === 'clay') { hex = clayHex[e.name] !== undefined ? clayHex[e.name] : CLAY; map = e.name === 'jaali' ? holesTex : null; }
+      if (mode === 'real') { if (o.hex !== undefined) hex = o.hex; map = o.map || null; }
+      m.color.setHex(hex);
+      if (mode !== 'diagram') m.color.convertSRGBToLinear();
+      m.map = map; m.bumpMap = o.bump || null; m.bumpScale = o.bs || 1;
+      m.roughness = o.rough !== undefined ? o.rough : e.rough;
+      m.opacity = o.op !== undefined ? o.op : e.op;
+      if (e.ei !== undefined) m.emissiveIntensity = mode === 'clay' ? 0 : e.ei;
+      m.needsUpdate = true;
+    });
+    M.jaaliDepth.map = M.jaali.map; M.jaaliDepth.needsUpdate = true;
+    M.string.color.setHex(mode === 'clay' ? 0xb5b0a6 : 0x55504a);
+    var col = new THREE.Color();
+    inst.forEach(function (it) {
+      for (var i = 0; i < it.cols.length; i++) {
+        col.setHex(mode === 'clay' ? it.clay : it.cols[i]);
+        if (mode !== 'diagram') col.convertSRGBToLinear();
+        it.mesh.setColorAt(i, col);
+      }
+      it.mesh.instanceColor.needsUpdate = true;
+    });
+  }
+  function sm(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+  var kc = new THREE.Color(), kc2 = new THREE.Color();
+  function key(x, stops) {
+    if (x <= stops[0][0]) return kc.setHex(stops[0][1]);
+    for (var i = 1; i < stops.length; i++) {
+      if (x <= stops[i][0]) return kc.setHex(stops[i - 1][1]).lerp(kc2.setHex(stops[i][1]), (x - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0]));
+    }
+    return kc.setHex(stops[stops.length - 1][1]);
+  }
+  // undo the filmic curve, so a sky colour chosen for the screen survives tone mapping
+  function acesInv(d) {
+    var lo = 0, hi = 12;
+    for (var i = 0; i < 24; i++) {
+      var x = (lo + hi) / 2, f = (x * (x + 0.0245786) - 0.000090537) / (x * (0.983729 * x + 0.432951) + 0.238081);
+      if (f < d) lo = x; else hi = x;
+    }
+    return lo * 0.6;
+  }
+  function pre(c, out) { out.copy(c).convertSRGBToLinear(); return out.setRGB(acesInv(out.r), acesInv(out.g), acesInv(out.b)); }
+  var ZEN = [[-10, 0x1b2338], [-3, 0x4a5674], [6, 0x7f93ad], [18, 0x6f9bc8]];
+  var HOR = [[-10, 0x4b4a5e], [-3, 0xcf9f90], [6, 0xecc9a2], [18, 0xe2ddd3]];
+  var sunVec = new THREE.Vector3(), tmpC = new THREE.Color();
+  function updateLight() {
+    var rad = Math.PI / 180, lat = 23.8 * rad, dec = -20 * rad, H = (hour - 12) * 15 * rad;
+    var sinAlt = Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H);
+    var alt = Math.asin(sinAlt), deg = alt / rad;
+    var cosAz = (Math.sin(dec) - sinAlt * Math.sin(lat)) / (Math.cos(alt) * Math.cos(lat));
+    var az = Math.acos(Math.max(-1, Math.min(1, cosAz)));
+    if (hour > 12) az = 2 * Math.PI - az;
+    // north is -x, east is -z; the light itself never comes from below the horizon
+    var a2 = Math.max(alt, 4 * rad);
+    sunVec.set(-Math.cos(a2) * Math.cos(az), Math.sin(a2), -Math.cos(a2) * Math.sin(az));
+    sun.position.copy(sun.target.position).addScaledVector(sunVec, 110);
+    var k = Math.max(0.12, Math.min(1, Math.sin(alt) * 1.9));
+    if (mode === 'real') {
+      var day = sm(-1.5, 9, deg), night = 1 - sm(-7, 3, deg);
+      sun.intensity = 1.6 * day;
+      sun.color.copy(key(deg, [[0, 0xff8a48], [6, 0xffb673], [16, 0xffe6c8], [30, 0xfff6ea]])).convertSRGBToLinear();
+      var U = sky.material.uniforms;
+      pre(key(deg, ZEN), U.zen.value);
+      pre(key(deg, HOR), U.hor.value);
+      U.sunDir.value.set(-Math.cos(alt) * Math.cos(az), Math.sin(alt), -Math.cos(alt) * Math.sin(az));
+      U.sunCol.value.copy(sun.color).multiplyScalar(0.5 + 0.9 * sm(-8, 10, deg));
+      scene.fog.color.copy(U.hor.value);
+      hemi.color.copy(key(deg, ZEN)).lerp(tmpC.copy(key(deg, HOR)), 0.5).convertSRGBToLinear();
+      hemi.groundColor.copy(key(deg, [[-10, 0x2a2630], [6, 0x7d6c5a], [18, 0x85796a]])).convertSRGBToLinear();
+      hemi.intensity = 0.36 + 0.22 * sm(-8, 12, deg);
+      renderer.toneMappingExposure = 1 + 0.45 * night;
+      lamps.forEach(function (l) { l.intensity = 1.6 * night; l.visible = night > 0.02; });
+      M.glow.opacity = 0.18 + 0.82 * night;
+      [M.lanternA, M.lanternB, M.lanternC].forEach(function (m) { m.emissiveIntensity = 0.6 + 2.4 * night; });
+    } else if (mode === 'clay') {
+      sun.intensity = 0.26 + 0.32 * k; sun.color.setRGB(1, 1, 1);
+      hemi.color.setRGB(1, 1, 1); hemi.groundColor.setHex(0xa39f96).convertSRGBToLinear(); hemi.intensity = 0.5;
+    } else {
+      sun.intensity = 0.3 + 0.6 * k;
+      sun.color.setRGB(1, 0.86 + 0.1 * k, 0.7 + 0.2 * k);
+      hemi.color.setHex(0xdfe9f2); hemi.groundColor.setHex(0x8f8576); hemi.intensity = 0.4 + 0.14 * k;
+    }
+  }
+
+  // ---------- theme ----------
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function applyTheme() {
+    invalidate();
+    if (mode === 'real') { scene.background = null; if (!scene.fog || !scene.fog.isFogExp2) scene.fog = new THREE.FogExp2(0xffffff, 0.005); return; }
+    var c = new THREE.Color(cssVar(mode === 'clay' ? '--clay-bg' : '--sky') || '#d3dde3');
+    scene.background = c;
+    scene.fog = new THREE.Fog(c.getHex(), mode === 'clay' ? 110 : 150, mode === 'clay' ? 420 : 520);
+    // fog is mixed in linear light and then encoded, so give it the linear value of the background
+    if (mode === 'clay') scene.fog.color.convertSRGBToLinear();
+  }
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+    new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  } catch (e) {}
+
+  // ---------- post-processing: ambient occlusion, vignette, FXAA ----------
+  function buildComposer() {
+    if (composer !== null) return;
+    composer = false;
+    try {
+      if (!THREE.EffectComposer || !THREE.ShaderPass || !THREE.SSAOPass || !THREE.CopyShader || !THREE.SSAOShader || !THREE.SimplexNoise || !renderer.capabilities.isWebGL2) return;
+      var w = stage.clientWidth || 800, h = stage.clientHeight || 600;
+      var c = new THREE.EffectComposer(renderer);
+      ssao = new THREE.SSAOPass(scene, camera, w, h);
+      ssao.normalRenderTarget.depthTexture.type = THREE.UnsignedIntType;
+      ssao.beautyRenderTarget.texture.encoding = THREE.sRGBEncoding;
+      // a 24-bit depth attachment; the default 16-bit one lets the ground planes flicker into stripes
+      ssao.beautyRenderTarget.depthTexture = new THREE.DepthTexture();
+      ssao.beautyRenderTarget.depthTexture.type = THREE.UnsignedIntType;
+      ssao.kernelRadius = 1.1; ssao.minDistance = 0.00005; ssao.maxDistance = 0.0022;
+      ssao.normalMaterial.clippingPlanes = [clip];
+      var ov = ssao.overrideVisibility;
+      ssao.overrideVisibility = function () { ov.call(this); noAO.forEach(function (o) { o.visible = false; }); };
+      c.addPass(ssao);
+      finalPass = new THREE.ShaderPass({
+        uniforms: { tDiffuse: { value: null }, vig: { value: 0 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: [
+          'uniform sampler2D tDiffuse; uniform float vig; varying vec2 vUv;',
+          'void main(){',
+          '  vec3 s = texture2D(tDiffuse, vUv).rgb;',
+          '  s *= 1.0 - vig * smoothstep(0.42, 0.98, distance(vUv, vec2(0.5)));',
+          '  gl_FragColor = vec4(s, 1.0);',
+          '}'].join('\n')
+      });
+      c.addPass(finalPass);
+      if (THREE.FXAAShader) { fxaa = new THREE.ShaderPass(THREE.FXAAShader); c.addPass(fxaa); }
+      c.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.25 : 1.5));
+      composer = c;
+      resize();
+    } catch (e) { composer = false; ssao = fxaa = finalPass = null; }
+  }
+  function setMode(m) {
+    mode = m;
+    if (m === 'real' && !R) R = buildRealTextures();
+    if (m !== 'diagram') buildComposer();
+    renderer.toneMapping = m === 'real' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1;
+    sky.visible = m === 'real'; M.glow.visible = m === 'real';
+    if (m !== 'real') lamps.forEach(function (l) { l.visible = false; });
+    applyLooks(); applyTheme(); updateLight();
+    scene.traverse(function (o) { if (o.material) o.material.needsUpdate = true; });
+    if (finalPass) finalPass.uniforms.vig.value = m === 'real' ? 0.3 : 0;
+    Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mode') === m ? 'true' : 'false'); });
+    var lb = document.getElementById('ly-labels');
+    if (m === 'real' && lb.checked) { lb.checked = false; labelsEl.hidden = true; autoHid = true; }
+    else if (m !== 'real' && autoHid) { lb.checked = true; labelsEl.hidden = false; autoHid = false; }
+    try { localStorage.setItem('machan-mode', m); } catch (e) {}
+    invalidate();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
+  });
+
+  // ---------- places ----------
+  var places = [
+    { p: [3.6, 1.6, 3.95], g: 'ground', t: '多功能室1', d: '地面層北側的半封閉房間，用於工作坊、展覽與會議。大型摺疊門打開後，會和中央的遮蔭空間連成一片。' },
+    { p: [15.6, 1.5, 3.95], g: 'ground', t: '彈性空間／遊戲區', d: '地面層中央，直接向空地敞開。上方的樓板替它遮陰，背後是面向巷道的孔洞磚牆。' },
+    { p: [27.2, 1.6, 3.95], g: 'ground', t: '多功能室2', d: '地面層南側的房間，配置與北側相同：下半是孔洞磚，上半是青綠色的鋼網。' },
+    { p: [10.6, 2.3, 1.8], g: 'ground', t: '樓梯兼階梯座位', d: '一道寬樓梯同時是動線、座位與小劇場。模型中簡化成一段往南上升的實心階梯。' },
+    { p: [9.8, 3.6, 6.15], g: 'ground', t: '樓梯塔與鋼籠', d: '凸向空地的孔洞磚塔，旁邊有一道拱門，塔頂是罩著鋼網的青綠色鋼籠。它是整棟建築面對空地最明顯的入口記號。' },
+    { p: [2.4, 5.0, 2.2], g: 'deck', t: '策展空間', d: '二樓北端抬高約1m的平台（Curatorial Space），以寬階梯和中央相接，上方是紫色遮棚。' },
+    { p: [15.2, 3.9, 2.6], g: 'deck', t: '論壇空間／舞台', d: '二樓中央最低的一段（Forum Space / Stage），面向空地只有座椅高度的矮牆與紫色欄杆，站在這裡可以看整片空地。' },
+    { p: [19.3, 4.5, 3.6], g: 'deck', t: '上層階梯座位', d: '從論壇往南升高的大階梯，坐在上面面向舞台，也俯瞰空地。' },
+    { p: [27.9, 5.3, 2.0], g: 'upper', t: '互動展廊', d: '二樓南端由孔洞磚牆圍出的房間（Interactive Gallery）。依Ammodo的說明，上層這類有孔洞磚圍合的空間，可供女性主導的聚會等較私密的活動使用。' },
+    { p: [20.4, 6.9, 1.1], g: 'ground', t: '樹與挑空', d: '一棵樹從地面穿過樓板的開口長到二樓，旁邊立著一道孔洞磚屏風。' },
+    { p: [10.5, 0.5, 11.5], g: 'site', t: '開放舞台', d: '空地上的圓形舞台（Open Stage），與建築的階梯、平台相對。空地本身維持開放，建築只佔東側邊緣。' },
+    { p: [17, 8.1, 1.4], g: 'canopy', t: '彩色鋼構遮棚', d: '紫、桃紅、青綠三座遮棚架在磚牆頂端，邊梁在平面上呈弧形，下方掛著燈籠。' },
+    { p: [-1.0, 5.9, 2.3], g: 'deck', t: '兩端的鋼框', d: '軸測圖在這兩處標示「Future Expansion (if required)」，照片中是青綠色的鋼框。位置與大小為示意。' }
+  ];
+  var placesEl = document.getElementById('places'), detailEl = document.getElementById('detail');
+  var selected = -1;
+  function select(i) {
+    selected = i;
+    places.forEach(function (pl, k) {
+      pl.pin.setAttribute('aria-pressed', k === i ? 'true' : 'false');
+      pl.item.setAttribute('aria-pressed', k === i ? 'true' : 'false');
+    });
+    detailEl.textContent = '';
+    var s = document.createElement('strong'); s.textContent = (i + 1) + '　' + places[i].t;
+    var d = document.createElement('span'); d.textContent = places[i].d;
+    detailEl.appendChild(s); detailEl.appendChild(d);
+  }
+  places.forEach(function (pl, i) {
+    var pin = document.createElement('button');
+    pin.type = 'button'; pin.className = 'pin'; pin.textContent = String(i + 1); pin.title = pl.t;
+    pin.setAttribute('aria-label', (i + 1) + ' ' + pl.t); pin.setAttribute('aria-pressed', 'false');
+    pin.addEventListener('click', function () { select(i); });
+    labelsEl.appendChild(pin); pl.pin = pin;
+    var li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+    var n = document.createElement('span'); n.className = 'n'; n.textContent = String(i + 1);
+    var tt = document.createElement('span'); tt.textContent = pl.t;
+    b.appendChild(n); b.appendChild(tt);
+    b.addEventListener('click', function () { select(i); });
+    li.appendChild(b); placesEl.appendChild(li); pl.item = b;
+    pl.v = new THREE.Vector3();
+  });
+
+  // ---------- controls ----------
+  function $(id) { return document.getElementById(id); }
+  var explode = 0;
+  function setExplode(v) {
+    explode = v;
+    G.deck.position.y = v; G.upper.position.y = v * 2; G.canopy.position.y = v * 3;
+    if (G.peopleDeck) G.peopleDeck.position.y = v;
+    $('explodeOut').textContent = v.toFixed(1).replace(/\.0$/, '') + 'm';
+  }
+  $('explode').addEventListener('input', function () { setExplode(parseFloat(this.value)); });
+  $('cut').addEventListener('input', function () {
+    var v = parseFloat(this.value);
+    if (v <= 0) { clip.constant = 1e4; $('cutOut').textContent = '關'; }
+    else { var c = 6.4 - (v / 100) * 6.2; clip.constant = c; $('cutOut').textContent = c.toFixed(1) + 'm'; }
+  });
+  $('sun').addEventListener('input', function () {
+    var h = parseFloat(this.value); hour = h; updateLight();
+    var hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+    $('sunOut').textContent = hh + ':' + (mm < 10 ? '0' : '') + mm;
+  });
+  [['ly-canopy', 'canopy'], ['ly-upper', 'upper'], ['ly-deck', 'deck'], ['ly-ground', 'ground'], ['ly-context', 'context'], ['ly-people', 'people'], ['ly-plan', 'plan']].forEach(function (a) {
+    $(a[0]).addEventListener('change', function () { G[a[1]].visible = this.checked; });
+  });
+  $('ly-labels').addEventListener('change', function () { labelsEl.hidden = !this.checked; });
+
+  // ---------- camera presets ----------
+  var views = {
+    aerial: { p: [39, 21, 36], t: [15.5, 3, 5] },
+    field: { p: [36.5, 1.7, 27.4], t: [14.5, 4.0, 3.5] },
+    deck: { p: [13.4, 5.0, 4.3], t: [22, 4.6, 2.8] },
+    alley: { p: [5, 17, -28], t: [15.5, 3.5, 2] },
+    top: { p: [15.5, 78, 12.05], t: [15.5, 0, 12] }
+  };
+  var tween = null;
+  function go(name, instant) {
+    var v = views[name];
+    var to = { p: new THREE.Vector3().fromArray(v.p), t: new THREE.Vector3().fromArray(v.t) };
+    if (instant || reduceMotion) { camera.position.copy(to.p); controls.target.copy(to.t); controls.update(); return; }
+    tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: to.p, t1: to.t, t: 0, s: performance.now() };
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#views button'), function (b) {
+    b.addEventListener('click', function () { go(b.getAttribute('data-view')); });
+  });
+  controls.addEventListener('start', function () { tween = null; });
+  go('aerial', true);
+
+  // ---------- resize and render ----------
+  function resize() {
+    var w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.fov = w < h ? 52 : 38;
+    camera.updateProjectionMatrix();
+    if (composer) {
+      composer.setSize(w, h);
+      var pr = composer._pixelRatio || 1;
+      if (fxaa) fxaa.material.uniforms.resolution.value.set(1 / (w * pr), 1 / (h * pr));
+    }
+    invalidate();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+  resize();
+  ['input', 'change', 'click'].forEach(function (ev) { document.addEventListener(ev, invalidate, true); });
+  document.addEventListener('visibilitychange', invalidate);
+  controls.addEventListener('change', invalidate);
+
+  var saved = null;
+  try { saved = localStorage.getItem('machan-mode'); } catch (e) {}
+  setMode(saved === 'clay' || saved === 'real' ? saved : 'diagram');
+
+  var offsets = { ground: 0, site: 0, deck: 1, upper: 2, canopy: 3 };
+  window.MACHAN = { renderer: renderer, scene: scene, camera: camera, controls: controls, groups: G, mats: M, clip: clip, noAO: noAO, box: box, reg: reg, invalidate: invalidate, views: views, go: go, setMode: setMode, getMode: function () { return mode; }, getSSAO: function () { return ssao; }, boxLine: boxLine, boxFill: boxFill };
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (document.hidden) return;
+    if (tween) {
+      tween.t = Math.min(1, (now - tween.s) / 900);
+      var k = tween.t < 0.5 ? 2 * tween.t * tween.t : 1 - Math.pow(-2 * tween.t + 2, 2) / 2;
+      camera.position.lerpVectors(tween.p0, tween.p1, k);
+      controls.target.lerpVectors(tween.t0, tween.t1, k);
+      if (tween.t >= 1) tween = null;
+      dirty = true;
+    }
+    if (controls.update()) dirty = true;
+    if (!dirty) return;
+    dirty = false;
+    sky.position.copy(camera.position);
+    if (mode !== 'diagram' && composer) composer.render(); else renderer.render(scene, camera);
+    if (!labelsEl.hidden) {
+      var w = stage.clientWidth, h = stage.clientHeight;
+      for (var i = 0; i < places.length; i++) {
+        var pl = places[i], vis = G[pl.g].visible;
+        pl.v.set(pl.p[0], pl.p[1] + explode * offsets[pl.g], pl.p[2]).project(camera);
+        if (!vis || pl.v.z > 1 || pl.v.z < -1 || Math.abs(pl.v.x) > 1.05 || Math.abs(pl.v.y) > 1.05) { pl.pin.hidden = true; continue; }
+        pl.pin.hidden = false;
+        pl.pin.style.transform = 'translate(' + ((pl.v.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' + ((-pl.v.y * 0.5 + 0.5) * h).toFixed(1) + 'px)';
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  // Model proposals: the 15 x 15 x 7 cm assignment box at five scales, shown as a volume in the scene.
+  var A = window.MACHAN, THREE = window.THREE;
+  if (!A || !THREE) return;
+  var G = A.groups, M = A.mats;
+  function $(id) { return document.getElementById(id); }
+  function fire(el, type) { el.dispatchEvent(new Event(type, { bubbles: true })); }
+
+  // ---------- real bricks where the 1:1 and 1:10 boxes sit ----------
+  // A 1.5 m x 0.7 m patch of the field-side jaali wall of the north room is rebuilt brick by brick.
+  var SP = { x0: 2.25, x1: 3.75, y0: 0.85, y1: 1.55, z0: 3.5, z1: 3.7 };
+  var COURSES = 9, PITCH = (SP.y1 - SP.y0) / COURSES, BRICK = 0.24, PERIOD = 0.36, BED = 0.01;
+  var brickMat = A.reg('pbrick', new THREE.MeshStandardMaterial({ color: 0x9d988c, roughness: 0.95, metalness: 0, side: THREE.DoubleSide }));
+  var bedMat = A.reg('pmortar', new THREE.MeshStandardMaterial({ color: 0xbdb9ae, roughness: 1, metalness: 0, side: THREE.DoubleSide }));
+  var backMat = A.reg('pback', new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 1, metalness: 0, side: THREE.DoubleSide }));
+  [brickMat, bedMat].forEach(function (m) { m.clippingPlanes = [A.clip]; m.clipShadows = true; });
+  var oneVoid = null, spec = new THREE.Group(), sample = new THREE.Group();
+  G.ground.add(spec); G.ground.add(sample); sample.visible = false;
+  (function () {
+    var wall = null;
+    G.ground.children.forEach(function (o) {
+      if (o.material === M.jaali && Math.abs(o.position.x - 3.675) < 0.01 && Math.abs(o.position.y - 0.95) < 0.01 && Math.abs(o.position.z - 3.6) < 0.01) wall = o;
+    });
+    if (!wall) return;
+    G.ground.remove(wall); wall.geometry.dispose();
+    A.box(0.35, SP.x0, 0.15, 1.75, SP.z0, SP.z1, M.jaali, G.ground);
+    A.box(SP.x1, 7, 0.15, 1.75, SP.z0, SP.z1, M.jaali, G.ground);
+    A.box(SP.x0, SP.x1, 0.15, SP.y0, SP.z0, SP.z1, M.jaali, G.ground);
+    A.box(SP.x0, SP.x1, SP.y1, 1.75, SP.z0, SP.z1, M.jaali, G.ground);
+    for (var c = 0; c < COURSES; c++) {
+      var y = SP.y0 + c * PITCH, off = (c % 2) * PERIOD / 2;
+      for (var k = -1; k < 6; k++) {
+        var a = SP.x0 + k * PERIOD - off, b = a + BRICK;
+        if (c === 4 && k === 2) oneVoid = { x: b, y: y + BED };
+        a = Math.max(a, SP.x0 + 0.001); b = Math.min(b, SP.x1 - 0.001);
+        if (b - a < 0.01) continue;
+        A.box(a, b, y + BED, y + PITCH - (c === COURSES - 1 ? 0.001 : 0), SP.z0, SP.z1, brickMat, spec);
+        A.box(a, b, y + (c ? 0 : 0.001), y + BED, SP.z0 + 0.008, SP.z1 - 0.008, bedMat, spec);
+      }
+    }
+    if (!oneVoid) return;
+    // 1:1 sample: the end of one brick as a closed solid, and the outline of the brick below the void
+    var e = 0.0005, x0 = oneVoid.x - 0.09, z0 = 3.6 - 0.075, z1 = 3.6 + 0.075, y0 = oneVoid.y;
+    A.box(x0 + e, oneVoid.x, y0 + e, y0 + 0.07 - e, z0 + e, z1 - e, brickMat, sample);
+    var pts = [[oneVoid.x + 0.004, z0 + 0.004], [oneVoid.x + 0.06 - 0.004, z0 + 0.004], [oneVoid.x + 0.06 - 0.004, z1 - 0.004], [oneVoid.x + 0.004, z1 - 0.004]].map(function (q) { return new THREE.Vector3(q[0], y0 + 0.001, q[1]); });
+    sample.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x8a8478 })));
+  })();
+
+  // ---------- more of the settlement, so the 1:500 and 1:1000 boxes are filled ----------
+  var outer = [];
+  (function () {
+    var seed = 23;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var list = [];
+    for (var k = -5; k < 27; k++) {
+      for (var j = -8; j < 27; j++) {
+        if (k >= 0 && k <= 21 && j >= 0 && j <= 18) continue;
+        var w = 3.8 + rnd() * 1.5, d = 3.4 + rnd() * 1.5, x = -42 + k * 5.6 + rnd() * 0.5, z = -34 + j * 5.2 + rnd() * 0.5, t = rnd();
+        var h = t < 0.7 ? 2.3 + rnd() * 0.6 : (t < 0.96 ? 4.6 + rnd() * 0.9 : 7 + rnd());
+        list.push([x, z, w, d, h, rnd()]);
+      }
+    }
+    var geo = new THREE.BoxGeometry(1, 1, 1);
+    var walls = new THREE.InstancedMesh(geo, M.cwall, list.length), roofs = new THREE.InstancedMesh(geo, M.croof, list.length);
+    var m4 = new THREE.Matrix4(), p = new THREE.Vector3(), s = new THREE.Vector3(), q = new THREE.Quaternion();
+    var ax = new THREE.Vector3(1, 0, 0), az = new THREE.Vector3(0, 0, 1);
+    var wallPal = [0x8f8d85, 0x9a968b, 0x827f77, 0xa39d90, 0x7d7266], roofPal = [0x85563f, 0x6f773d, 0x8c8172, 0x5f7180, 0x96603f, 0x787c72];
+    var wc = [], rc = [];
+    list.forEach(function (e, i) {
+      m4.makeScale(e[2], e[4], e[3]); m4.setPosition(e[0] + e[2] / 2, e[4] / 2, e[1] + e[3] / 2); walls.setMatrixAt(i, m4);
+      wc.push(wallPal[Math.floor(e[5] * wallPal.length)]);
+      var tilt = ((e[5] * 13.7) % 1 - 0.5) * 0.22, alongX = (e[5] * 5.1) % 1 > 0.5;
+      q.setFromAxisAngle(alongX ? ax : az, tilt);
+      p.set(e[0] + e[2] / 2, e[4] + 0.08 + Math.abs(Math.tan(tilt)) * ((alongX ? e[3] : e[2]) / 2 + 0.25), e[1] + e[3] / 2);
+      s.set(e[2] + 0.5, 0.12, e[3] + 0.5); m4.compose(p, q, s); roofs.setMatrixAt(i, m4);
+      rc.push(roofPal[Math.floor(((e[5] * 7.3) % 1) * roofPal.length)]);
+    });
+    walls.castShadow = roofs.castShadow = true; walls.receiveShadow = roofs.receiveShadow = true;
+    G.context.add(walls); G.context.add(roofs);
+    outer.push({ mesh: walls, cols: wc, clay: 0xd8d5ca }, { mesh: roofs, cols: rc, clay: 0xdedad0 });
+  })();
+  function paintOuter() {
+    var mode = A.getMode(), col = new THREE.Color();
+    outer.forEach(function (o) {
+      for (var i = 0; i < o.cols.length; i++) {
+        col.setHex(mode === 'clay' ? o.clay : o.cols[i]);
+        if (mode !== 'diagram') col.convertSRGBToLinear();
+        o.mesh.setColorAt(i, col);
+      }
+      o.mesh.instanceColor.needsUpdate = true;
+    });
+  }
+
+  // ---------- skyline board for the 1:1000 proposal ----------
+  var board = new THREE.Group();
+  board.visible = false; A.scene.add(board);
+  (function () {
+    var seed = 41, x = -57;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    while (x < 86) {
+      var w = 8 + rnd() * 10, h = 30 + rnd() * 38;
+      A.box(x, Math.min(x + w, 89), 0, h, -60, -58.5, backMat, board, true);
+      x += w + 1 + rnd() * 5;
+    }
+  })();
+
+  // ---------- box, clipping, light, camera ----------
+  var sun = null;
+  A.scene.children.forEach(function (o) { if (o.isDirectionalLight) sun = o; });
+  var planes = [0, 1, 2, 3, 4, 5].map(function () { return new THREE.Plane(); });
+  var kept = null, scale = 0, hidLabels = false;
+
+  function boxAt(s) {
+    var w = 0.15 * s, h = 0.07 * s, cx = 15.5, cz = 14, y0 = 0;
+    if (s === 1 && oneVoid) { cx = oneVoid.x - 0.015; cz = 3.6; y0 = oneVoid.y; }
+    else if (s <= 10) { cx = 3; cz = 3.6; y0 = SP.y0; }
+    else if (s === 100) { cx = parseFloat($('pmPos').value); cz = 6.5; }
+    return { x0: cx - w / 2, x1: cx + w / 2, y0: y0, y1: y0 + h, z0: cz - w / 2, z1: cz + w / 2, w: w, h: h, cx: cx, cz: cz };
+  }
+  function clipTo(b) {
+    if (kept) { kept.forEach(function (k) { k.m.clippingPlanes = k.p; k.m.clipShadows = k.s; k.m.needsUpdate = true; }); kept = null; }
+    if (!b) return;
+    var e = b.w * 0.0003; // pull the planes in a hair so faces lying exactly on the box are cut cleanly
+    planes[0].normal.set(1, 0, 0); planes[0].constant = -(b.x0 + e);
+    planes[1].normal.set(-1, 0, 0); planes[1].constant = b.x1 - e;
+    planes[2].normal.set(0, 0, 1); planes[2].constant = -(b.z0 + e);
+    planes[3].normal.set(0, 0, -1); planes[3].constant = b.z1 - e;
+    planes[4].normal.set(0, -1, 0); planes[4].constant = b.y1 - e;
+    planes[5].normal.set(0, 1, 0); planes[5].constant = -(b.y0 > 0 ? b.y0 + e : -0.2);
+    kept = [];
+    var seen = {};
+    function take(m) {
+      if (!m || seen[m.uuid] || m.isShaderMaterial || m === A.boxLine.material || m === A.boxFill.material) return;
+      seen[m.uuid] = 1;
+      kept.push({ m: m, p: m.clippingPlanes, s: m.clipShadows });
+      m.clippingPlanes = m.clippingPlanes && m.clippingPlanes.length ? planes.concat(m.clippingPlanes) : planes;
+      m.clipShadows = true; m.needsUpdate = true;
+    }
+    A.scene.traverse(function (o) { take(o.material); take(o.customDepthMaterial); });
+    var ao = A.getSSAO();
+    if (ao) take(ao.normalMaterial);
+  }
+  function fitSun(b, s, cut) {
+    if (!sun) return;
+    var near = !b || s === 100 || (s <= 10 && !cut), half = near ? 34 : (s <= 10 ? Math.max(b.w * 1.6, 0.4) : b.w * 0.75);
+    var d = sun.position.clone().sub(sun.target.position);
+    if (near) sun.target.position.set(15.5, 0, 8); else sun.target.position.set(b.cx, b.y0, b.cz);
+    sun.position.copy(sun.target.position).add(d);
+    var c = sun.shadow.camera;
+    c.left = -half; c.right = half; c.top = half; c.bottom = -half;
+    c.near = near ? 10 : Math.max(1, 110 - half * 3); c.far = near ? 220 : 110 + half * 3;
+    c.updateProjectionMatrix();
+    sun.shadow.normalBias = 0.04 * half / 34;
+  }
+  function fitFog(s) {
+    var f = A.scene.fog;
+    if (!f) return;
+    if (f.isFogExp2) { f.density = s >= 1000 ? 0.0016 : (s >= 500 ? 0.003 : 0.005); return; }
+    if (f.near0 === undefined) { f.near0 = f.near; f.far0 = f.far; }
+    f.near = s >= 500 ? Math.max(f.near0, s * 0.3) : f.near0;
+    f.far = s >= 500 ? Math.max(f.far0, s * 1.2) : f.far0;
+  }
+  function fitAO(b, s, cut) {
+    var ao = A.getSSAO();
+    if (!ao) return;
+    var tight = b && s <= 10 && cut;
+    ao.kernelRadius = tight ? b.w * 0.3 : 1.1;
+    ao.minDistance = tight ? b.w * 0.004 / 1200 : 5e-5;
+    ao.maxDistance = tight ? b.w * 0.6 / 1200 : 0.0022;
+    ao.output = tight && s === 1 ? 3 : 0;
+  }
+  function labels(hide) {
+    var cb = $('ly-labels');
+    if (hide && cb.checked) { cb.checked = false; fire(cb, 'change'); hidLabels = true; }
+    else if (!hide && hidLabels) { cb.checked = true; fire(cb, 'change'); hidLabels = false; }
+  }
+
+  // ---------- the five proposals ----------
+  var P = {
+    1: {
+      tag: '材料', title: '1:1　一皮磚，一個洞',
+      range: '盒子就是實物大小：15×15×7cm。',
+      idea: '孟加拉常見的磚約24×11.5×7cm，盒子的高度剛好是一皮磚。盒裡放不下一整塊磚，只放得下磚的一端和旁邊的洞，而這正是整棟建築最小的構成單位。模型可以拿在手上：手伸不伸得過去，貼著看能看到什麼，光照過來影子有多深。',
+      where: '地面層北側房間面向空地的孔洞磚牆，離地約1m的那一皮。',
+      how: ['用balsa薄板疊成7cm高的實心木塊，當作磚的一端，約9×15cm。', '旁邊留6cm的空，底板上只畫出下一皮磚的輪廓。', '木塊保留原色；想對照實物，可以在盒外放一小塊真的磚。'],
+      alt: '材料樣本：灰磚的斷面、青綠色鋼網、紫色鋼管扶手各取一段實物大小，並排放進盒子。',
+      check: '磚的尺寸與洞的寬度是依照片推估。1:1能不能用balsa以外的材料，要問老師。'
+    },
+    10: {
+      tag: '局部特色', title: '1:10　會透光的牆',
+      range: '盒子代表實際1.5×1.5×0.7m，大約是9皮磚的高度。',
+      idea: '到了1:10，看到的不再是一個洞，而是洞的排列。磚一塊接一個空、上下兩皮錯開半格，牆就變成一張會透光透風的網，這是jaali在這棟建築裡的做法。模型的重點是光：從側面打燈，落在盒底的影子就是這面牆在室內地板上的樣子。',
+      where: '同一面牆，取1.5m長、0.7m高的一段。',
+      how: ['把7mm厚的balsa板裁成24×20mm的小塊當作磚，大約需要40塊。', '每一皮排成「一塊磚、空半塊」，上下兩皮錯開，疊9皮。', '牆立在15×15cm底板的中間，前後留出地面接影子。'],
+      alt: '二樓平台邊緣可以坐的矮牆，加上沿著牆轉折的紫色鋼管扶手。',
+      check: '砌法是從照片判讀的，洞的寬度（約半塊磚）與牆厚要再對照圖面。'
+    },
+    100: {
+      tag: '建築物', title: '1:100　中段剖出來',
+      range: '盒子代表實際15×15×7m。整棟長31m、最高約9m，放不進去，所以只取15m長的一段。',
+      idea: '預設取樓梯塔、拱門、中央遮蔭空間和二樓論壇這一段，因為建築最公共的動作都在這裡：一樓架空讓空地延伸進來，樓梯同時是座位，二樓是面向空地的舞台。兩端切斷的地方直接露出剖面，看得到樓板和高低差。',
+      where: '沿建築長向取15m（用上面的滑桿移動），進深從巷道到空地上的圓形舞台。',
+      how: ['樓板與平台用3mm板，磚牆用2mm板；孔洞磚牆用針或刀尖刺出網點，不必真的鏤空。', '遮棚用1×1mm的木條排出來，上紫、桃紅、青綠三色，是整個模型唯一的顏色。', '空地就是底板，圓形舞台刻一圈淺線。'],
+      alt: '改取南段，做互動展廊與上層階梯座位。',
+      check: '依推估高度，中段的磚牆頂約7.3m、遮棚頂約7.7m，會超出盒頂0.3到0.7cm，兩端的遮棚更高。可以把遮棚做成可取下的構件，或向老師確認高度限制。'
+    },
+    500: {
+      tag: '城市尺度', title: '1:500　空地和它的邊',
+      range: '盒子代表實際75×75×35m：整棟Machan、整片空地，加上周圍幾排房屋。建築縮小後約6.2×1.2×1.8cm。',
+      idea: '在這個尺度，Machan只是一條6cm長的薄片，貼在空地的邊上。主角是空地：聚落裡幾乎沒有留白，建築選擇不佔它，只把它的一條邊做厚。模型要讓人一眼看出「滿」和「空」的對比。',
+      where: '以空地為中心，四周各留幾排房屋。',
+      how: ['房屋用5到10mm的木塊，高度略有變化，頂面斜切一刀表示鐵皮屋頂。', '空地就是底板，什麼都不放；Machan用不同方向的木紋或薄薄一層顏色區分。', '巷道是木塊之間留下的縫，寬1到3mm。'],
+      alt: '只做空地周圍第一排房屋，其餘留白，強調「邊」。',
+      check: '房屋位置要用衛星影像或OpenStreetMap描出來，網頁上的聚落只是示意。空地的尺寸在各份圖面上不一致。'
+    },
+    1000: {
+      tag: '城市尺度', title: '1:1000　低矮的紋理，遠方的高樓',
+      range: '盒子代表實際150×150×70m。Machan縮小後長3.1cm，高不到1cm。',
+      idea: '整個聚落在盒子裡不到1cm高，上面空了6cm，這個空白就是重點。盒高7cm換算是70m，大約是一棟20層大樓的高度。把Gulshan和Banani的天際線割成剪影立在盒子後緣，當作遠景的立面而不是平面位置，一個盒子裡就能同時看到Korail的低和周圍城市的高。',
+      where: '以Machan和空地為中心，向外各75m。',
+      how: ['不必一棟一棟做：在3到5mm厚的balsa板上用刀刻出巷道，整片板子就是聚落的紋理。', '空地整塊挖掉，Machan用一根上色的細木條表示。', '後緣立一片薄板，割出高樓的剪影，高5到7cm。'],
+      alt: '不做背板，只留空白的盒高，讓聚落的扁平自己說話。',
+      check: 'Korail的面積在各資料中從約90到160英畝不等。150m的範圍碰不碰得到湖岸，要對照衛星影像；背板上的高樓只是示意。'
+    }
+  };
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  }
+  function part(out, label, text) {
+    var p = el('p');
+    p.appendChild(el('span', 'k', label));
+    p.appendChild(document.createTextNode(text));
+    out.appendChild(p);
+  }
+  function describe(s) {
+    var out = $('pmOut');
+    out.textContent = '';
+    if (!s) { out.appendChild(el('p', 'note', '選一個比例尺，3D畫面會標出盒子在那個比例下取到的範圍，下面列出概念與做法。')); return; }
+    var d = P[s];
+    out.appendChild(el('span', 'pm-tag', d.tag));
+    out.appendChild(el('h3', '', d.title));
+    out.appendChild(el('p', 'readout', d.range));
+    part(out, '概念', d.idea);
+    part(out, '取哪裡', d.where);
+    var p = el('p');
+    p.appendChild(el('span', 'k', '做法'));
+    out.appendChild(p);
+    var ol = el('ol');
+    d.how.forEach(function (t) { ol.appendChild(el('li', '', t)); });
+    out.appendChild(ol);
+    part(out, '備案', d.alt);
+    var c = el('p', 'warn');
+    c.appendChild(el('span', 'k', '待確認'));
+    c.appendChild(document.createTextNode(d.check));
+    out.appendChild(c);
+  }
+
+  // ---------- apply ----------
+  function apply(move) {
+    var s = scale, cut = s && $('pmClip').checked, b = s ? boxAt(s) : null;
+    $('pmPosRow').hidden = s !== 100;
+    $('pmClipRow').hidden = !s;
+    G.box.visible = !!s;
+    board.visible = s === 1000;
+    sample.visible = s === 1 && !!cut; spec.visible = !sample.visible;
+    A.controls.minDistance = b ? Math.min(3, b.w * 0.6) : 3;
+    A.controls.maxDistance = b ? Math.max(170, b.w * 2.4) : 170;
+    A.camera.near = s && s <= 10 ? 0.02 : 0.3;
+    A.camera.updateProjectionMatrix();
+    if (b) {
+      A.boxLine.scale.set(b.w, b.h, b.w); A.boxLine.position.set(b.cx, b.y0 + b.h / 2, b.cz);
+      A.boxFill.scale.set(b.w, b.w, 1); A.boxFill.position.set(b.cx, b.y0 + b.h * 0.004 + 0.002, b.cz);
+      A.boxFill.visible = !cut;
+    }
+    clipTo(cut ? b : null);
+    fitSun(b, s, cut);
+    fitAO(b, s, cut);
+    fitFog(s);
+    labels(!!cut);
+    if (move) {
+      if (b) {
+        A.views.box = { p: [b.cx + b.w * 0.85, b.y0 + b.h * 0.5 + b.w * 0.7, b.cz + b.w * 1.2], t: [b.cx, b.y0 + b.h * 0.35, b.cz] };
+        A.go('box');
+      } else A.go('aerial');
+    }
+    A.invalidate();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#pmSeg button'), function (btn) {
+    btn.addEventListener('click', function () {
+      scale = parseInt(btn.getAttribute('data-scale'), 10);
+      Array.prototype.forEach.call(document.querySelectorAll('#pmSeg button'), function (o) { o.setAttribute('aria-pressed', o === btn ? 'true' : 'false'); });
+      if (scale) { var ex = $('explode'); if (parseFloat(ex.value) > 0) { ex.value = 0; fire(ex, 'input'); } }
+      describe(scale);
+      apply(true);
+    });
+  });
+  $('pmClip').addEventListener('change', function () { apply(false); });
+  $('pmPos').addEventListener('input', function () {
+    var v = parseFloat(this.value);
+    $('pmPosOut').textContent = Math.abs(v - 15.5) < 0.3 ? '中段' : (v < 15.5 ? '偏北' : '偏南');
+    apply(false);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
+    b.addEventListener('click', function () { paintOuter(); apply(false); });
+  });
+
+  A.setMode(A.getMode());
+  paintOuter();
+  describe(0);
+  apply(false);
+})();
+</script>
+</body>
+</html>
