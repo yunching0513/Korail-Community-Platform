@@ -235,6 +235,11 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     </section>
 
     <section class="card">
+      <h2>達卡樹種參考</h2>
+      <p class="note">擬真植栽依達卡／Gulshan 湖周邊樹種研究與植物資料建模：雨樹（Samanea saman）呈開展傘冠與二回羽狀葉；芒果（Mangifera indica）呈密冠與長披針葉；印度苦楝（Azadirachta indica，Neem）呈開展樹冠與鋸齒小葉。樹幹分叉、樹皮與葉叢均為程式生成，樹齡與尺寸為場景示意；雨樹是當地栽植樹種，並非孟加拉原生種。建築挑空中的樹以年輕 Neem 示意，尚未確認現場樹種。</p>
+      <p class="links"><a href="https://doi.org/10.3329/bjpt.v30i2.70502" target="_blank" rel="noopener">達卡湖岸樹種調查（2023）</a><a href="https://www.nature.com/articles/s41598-026-46985-x" target="_blank" rel="noopener">達卡都市樹木調查</a><a href="https://www.nparks.gov.sg/florafaunaweb/flora/3/1/3106" target="_blank" rel="noopener">雨樹形態</a><a href="https://apps.worldagroforestry.org/treedb2/speciesprofile.php?Spid=1112" target="_blank" rel="noopener">芒果形態</a><a href="https://apps.worldagroforestry.org/treedb/AFTPDFS/Azadirachta_indica.PDF" target="_blank" rel="noopener">Neem 形態</a></p>
+    </section>
+    <section class="card">
       <h2>模型的限制</h2>
       <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。</p>
     </section>
@@ -433,10 +438,158 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     gl.position.set(x, y, z); gl.scale.set(1.7, 1.7, 1);
     parent.add(gl); noAO.push(gl);
   }
+  // Regional species references: Akter & Uddin (2023), World Agroforestry,
+  // NParks. These are illustrative species choices, not a site tree survey.
+  var realisticTrees = [], schematicTrees = [], foliageMaterials = {}, barkMaterial;
+  var speciesTraits = {
+    mango: { name: 'Mangifera indica', wide: 1, flat: 0.82 },
+    rain: { name: 'Samanea saman', wide: 1.28, flat: 0.46 },
+    neem: { name: 'Azadirachta indica', wide: 0.93, flat: 0.9 }
+  };
+  function vegetationMaterial(kind) {
+    if (foliageMaterials[kind]) return foliageMaterials[kind];
+    var c = document.createElement('canvas'); c.width = c.height = 256;
+    var g = c.getContext('2d');
+    function blade(x, y, len, width, angle, tone, serrated) {
+      g.save(); g.translate(x, y); g.rotate(angle);
+      var grad = g.createLinearGradient(-width, 0, width, 0);
+      grad.addColorStop(0, '#657a47'); grad.addColorStop(0.45, tone); grad.addColorStop(1, '#a4ad71');
+      g.fillStyle = grad; g.beginPath(); g.moveTo(0, -len / 2);
+      if (serrated) {
+        for (var a = 1; a <= 12; a++) g.lineTo(Math.sin(a / 12 * Math.PI) * width * (a % 2 ? 0.83 : 1), -len / 2 + len * a / 12);
+        for (var b = 11; b >= 0; b--) g.lineTo(-Math.sin(b / 12 * Math.PI) * width * (b % 2 ? 0.83 : 1), -len / 2 + len * b / 12);
+      } else {
+        g.bezierCurveTo(width * 1.5, -len / 4, width, len / 3, 0, len / 2);
+        g.bezierCurveTo(-width, len / 3, -width * 1.5, -len / 4, 0, -len / 2);
+      }
+      g.fill(); g.strokeStyle = 'rgba(201,205,152,0.58)'; g.lineWidth = 0.8;
+      g.beginPath(); g.moveTo(0, -len / 2); g.lineTo(0, len / 2); g.stroke();
+      for (var v = -2; v <= 2; v++) {
+        g.beginPath(); g.moveTo(0, v * len / 8); g.lineTo(width * 0.7, v * len / 8 - len / 9); g.stroke();
+      }
+      g.restore();
+    }
+    g.strokeStyle = '#807451'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(124, 247); g.bezierCurveTo(105, 180, 140, 80, 128, 9); g.stroke();
+    if (kind === 'mango') {
+      for (var i = 0; i < 7; i++) {
+        blade(112 + (i % 2 ? 44 : -38), 38 + i * 25, 91, 13, i % 2 ? 0.68 : -0.7, i % 3 ? '#4c6b3e' : '#7e8550');
+      }
+    } else if (kind === 'neem') {
+      for (var n = 0; n < 7; n++) {
+        blade(95, 35 + n * 28, 49, 10, -0.82, '#678444', true);
+        blade(157, 29 + n * 28, 49, 10, 0.82, '#59783e', true);
+      }
+      blade(128, 24, 40, 8, 0, '#7c9450', true);
+    } else {
+      // Bipinnate rachis: paired pinnae, each with paired small leaflets.
+      for (var p = 0; p < 5; p++) for (var side = -1; side <= 1; side += 2) {
+        var yy = 37 + p * 43;
+        g.beginPath(); g.moveTo(128, yy + 27); g.lineTo(128 + side * 99, yy - 8); g.stroke();
+        for (var k = 0; k < 6; k++) {
+          var xx = 128 + side * (19 + k * 14), yk = yy + 19 - k * 5;
+          blade(xx, yk - 10, 22, 6, side * 0.4, '#758d4f');
+          blade(xx, yk + 10, 22, 6, side * -0.4, '#638244');
+        }
+      }
+    }
+    var map = makeTex(c); map.wrapS = map.wrapT = THREE.ClampToEdgeWrapping;
+    var mat = new THREE.MeshStandardMaterial({ map: map, color: 0xffffff,
+      alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.82,
+      emissive: 0x1c2912, emissiveIntensity: 0.15,
+      clippingPlanes: [clip], clipShadows: true });
+    foliageMaterials[kind] = mat; return mat;
+  }
+  function treeBark() {
+    if (barkMaterial) return barkMaterial;
+    var c = document.createElement('canvas'); c.width = c.height = 256;
+    var g = c.getContext('2d'), sd = 91;
+    function rn() { sd = sd * 16807 % 2147483647; return sd / 2147483647; }
+    g.fillStyle = '#70675b'; g.fillRect(0, 0, 256, 256);
+    for (var i = 0; i < 450; i++) {
+      var x = rn() * 256, y = rn() * 256;
+      g.strokeStyle = i % 3 ? 'rgba(38,33,28,0.35)' : 'rgba(186,175,153,0.28)';
+      g.lineWidth = 0.4 + rn() * 2.5; g.beginPath(); g.moveTo(x, y);
+      g.bezierCurveTo(x - 4, y + 9, x + 4, y + 20, x + rn() * 5, y + 36); g.stroke();
+    }
+    var map = makeTex(c), bump = makeTex(c); bump.encoding = THREE.LinearEncoding;
+    barkMaterial = new THREE.MeshStandardMaterial({color: 0xb7b0a1, map: map, bumpMap: bump,
+      bumpScale: 0.028, roughness: 0.98, clippingPlanes: [clip], clipShadows: true });
+    return barkMaterial;
+  }
+  function regionalTree(x, y, z, h, radius, kind, parent, seed, bush) {
+    var spec = speciesTraits[kind], group = new THREE.Group(); group.position.set(x, y, z);
+    group.userData.treeSpecies = spec.name; parent.add(group); realisticTrees.push(group);
+    var sd = seed || 17;
+    function rnd() { sd = sd * 16807 % 2147483647; return sd / 2147483647; }
+    var segments = [], clouds = [], wide = radius * spec.wide;
+    function branch(a, b, r0, r1) { segments.push({a:a, b:b, r0:r0, r1:r1}); }
+    var base = new THREE.Vector3(), fork = new THREE.Vector3(h * 0.025, h * (kind === 'rain' ? 0.44 : 0.49), -h * 0.015);
+    var trunkRadius = bush ? 0.025 : Math.max(0.075, h * 0.022);
+    branch(base, fork, trunkRadius, trunkRadius * 0.58);
+    var arms = bush ? 4 : 8;
+    for (var i = 0; i < arms; i++) {
+      var angle = i * Math.PI * 2 / arms + rnd() * 0.5;
+      var reach = wide * (0.55 + rnd() * 0.35);
+      var tip = new THREE.Vector3(Math.cos(angle) * reach,
+        h - radius * spec.flat * 0.35 + (rnd() - 0.5) * radius * spec.flat,
+        Math.sin(angle) * reach);
+      var elbow = fork.clone().lerp(tip, 0.5); elbow.y -= h * 0.06;
+      branch(fork, elbow, trunkRadius * 0.45, trunkRadius * 0.25);
+      branch(elbow, tip, trunkRadius * 0.25, 0.015);
+      for (var j = 0; j < 5; j++) {
+        var a = angle + (rnd() - 0.5) * 1.8, d = radius * (0.18 + rnd() * 0.35);
+        var end = tip.clone().add(new THREE.Vector3(Math.cos(a) * d, (rnd() - 0.3) * radius * spec.flat * 0.9, Math.sin(a) * d));
+        branch(elbow.clone().lerp(tip, 0.65), end, 0.025, 0.006); clouds.push(end);
+      }
+    }
+    clouds.push(new THREE.Vector3(0, h + radius * spec.flat * 0.1, 0));
+    var wood = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.45, 1, 1, small ? 6 : 9), treeBark(), segments.length);
+    var matrix = new THREE.Matrix4(), quat = new THREE.Quaternion(), scale = new THREE.Vector3(), pos = new THREE.Vector3(), dir = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+    // Radius taper is encoded into vertex positions per segment through a shared cone.
+    segments.forEach(function (s, i) {
+      dir.subVectors(s.b, s.a); quat.setFromUnitVectors(up, dir.clone().normalize());
+      pos.copy(s.a).add(s.b).multiplyScalar(0.5); scale.set(s.r0, dir.length(), s.r0);
+      matrix.compose(pos, quat, scale); wood.setMatrixAt(i, matrix);
+    });
+    wood.castShadow = wood.receiveShadow = true; group.add(wood);
+    var perCloud = bush ? 12 : (small ? 10 : 19), count = clouds.length * perCloud;
+    var material = vegetationMaterial(kind);
+    var leaves = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), material, count);
+    var leafSize = bush ? 0.3 : (kind === 'rain' ? 0.7 : 0.63), tint = new THREE.Color(), euler = new THREE.Euler();
+    clouds.forEach(function (c, j) {
+      for (var k = 0; k < perCloud; k++) {
+        // Small overlapping shoots with air between clusters, never opaque crown balls.
+        var spread = radius * 0.27;
+        pos.set(c.x + (rnd() - 0.5) * spread * 2, c.y + (rnd() - 0.5) * spread * 1.35, c.z + (rnd() - 0.5) * spread * 2);
+        euler.set(rnd() * Math.PI, rnd() * Math.PI * 2, rnd() * Math.PI); quat.setFromEuler(euler);
+        var size = leafSize * (0.7 + rnd() * 0.6); scale.set(size, size, size);
+        matrix.compose(pos, quat, scale); leaves.setMatrixAt(j * perCloud + k, matrix);
+        tint.setHSL(0.20 + rnd() * 0.055, 0.08 + rnd() * 0.14, 0.76 + rnd() * 0.2).convertSRGBToLinear();
+        leaves.setColorAt(j * perCloud + k, tint);
+      }
+    });
+    leaves.castShadow = leaves.receiveShadow = true;
+    leaves.customDepthMaterial = new THREE.MeshDepthMaterial({depthPacking: THREE.RGBADepthPacking,
+      map: material.map, alphaTest: material.alphaTest, side: THREE.DoubleSide,
+      clippingPlanes: [clip], clipShadows: true});
+    group.add(leaves);
+    // SSAO normal override cannot preserve leaf alpha: exclude the cards there.
+    noAO.push(leaves); group.visible = false;
+    return group;
+  }
+  function syncVegetation() {
+    realisticTrees.forEach(function (o) { o.visible = mode === 'real'; });
+    schematicTrees.forEach(function (o) { o.visible = mode !== 'real'; });
+  }
+
   function shrub(x, y, z, r, parent) {
     var m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), M.leaf);
     m.position.set(x, y, z); m.scale.y = 0.8; m.castShadow = true;
-    parent.add(m);
+    parent.add(m); schematicTrees.push(m);
+    if (x > 19 && x < 22 && z < 2) return;
+    regionalTree(x, y - r * 0.65, z, r * 0.9, r * 0.68, 'mango', parent,
+      Math.floor((x + 90) * 337 + z * 53), true);
   }
 
   // ---------- ground floor ----------
@@ -490,6 +643,9 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     box(11.6, 12.4, 2.5, 3.2, 5.24, 5.27, M.sign, g, true);
     // tree growing through the void
     cyl(20.4, 0.15, 5.4, 1.1, 0.09, M.trunk, g);
+    // cyl() has no return; keep its newly appended mesh for diagram/clay only.
+    schematicTrees.push(g.children[g.children.length - 1]);
+    regionalTree(20.4, 0.15, 1.1, 6.2, 1.15, 'neem', g, 2041);
     var ring = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.45, 20), M.conc);
     ring.position.set(20.4, 0.37, 1.1); ring.castShadow = true; ring.receiveShadow = true; g.add(ring);
     shrub(20.4, 6.2, 1.1, 1.25, g); shrub(21.0, 5.6, 1.5, 0.9, g); shrub(19.8, 5.7, 0.8, 0.95, g);
@@ -687,6 +843,11 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     });
     trunks.castShadow = crowns.castShadow = true; crowns.receiveShadow = true;
     G.context.add(trunks); G.context.add(crowns);
+    schematicTrees.push(trunks, crowns);
+    trees.forEach(function (t, i) {
+      regionalTree(t[0], 0, t[1], t[2], t[3],
+        ['rain', 'mango', 'neem'][i % 3], G.context, 71 + i * 127);
+    });
     inst.push({ mesh: crowns, cols: gc, clay: 0xd2cec4 });
     // distant towers across the lake, as in the aerial photograph
     M.far = std({ color: 0xa9b5bf, roughness: 1 });
@@ -1122,7 +1283,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     renderer.toneMappingExposure = 1;
     sky.visible = m === 'real'; M.glow.visible = m === 'real';
     if (m !== 'real') lamps.forEach(function (l) { l.visible = false; });
-    applyLooks(); applyTheme(); updateLight(); syncPeople();
+    applyLooks(); applyTheme(); updateLight(); syncPeople(); syncVegetation();
     scene.traverse(function (o) { if (o.material) o.material.needsUpdate = true; });
     if (finalPass) finalPass.uniforms.vig.value = m === 'real' ? 0.10 : 0;
     Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mode') === m ? 'true' : 'false'); });
@@ -1641,4 +1802,5 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 </script>
 </body>
 </html>
+
 
