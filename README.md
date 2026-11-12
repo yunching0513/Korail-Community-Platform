@@ -42,3 +42,16 @@ Machan - Korail Community Platform（Paraa設計，孟加拉達卡Korail聚落�
 ## 放到網路上
 
 到這個repository的 Settings → Pages，Source選「Deploy from a branch」，Branch選 `main` 與 `/ (root)`，存檔後幾分鐘就會有網址。
+
+
+## 擬真模式更新（2026-11-12）
+
+- 六款本地透明 WebP 人物：AI 合成、非真實居民紀錄；在 22 個既有位置放置直立剪影，隨鏡頭水平轉向，支援遮擋、陰影與分解。圖解／素模保留幾何比例人；圖片載入失敗時也保留比例人。
+- 增加磚面孔隙、混凝土／木紋與波紋鐵皮凹凸；降低鋼構飽和度、放大泥地紋理尺度，調整日照與曝光、減弱暗角。
+- 初次開啟預設擬真，仍記住使用者切換的顯示方式。
+- 人物資產在 `assets/resident-1.webp` 至 `resident-6.webp`，部署時須與 `index.html` 一起上傳。
+
+### 驗證範圍
+
+JavaScript 語法通過；以 three.js r128 搭配模擬 renderer 執行初始化、三種模式、五個視角、六個比例選項、分解／剖切／日照事件，並檢查六張貼圖與 22 個人物剪影。預覽環境無法建立 WebGL context，因此尚未完成 GPU 畫面品質驗收，需在支援 WebGL 的實際瀏覽器確認。這仍是示意性的即時 3D 模型，不是實景攝影或測繪。
+
