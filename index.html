@@ -164,7 +164,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       <dl class="facts">
         <dt>名稱</dt><dd>Machan - Korail Community Platform<span class="en">Machan是孟加拉語的「平台」</span></dd>
         <dt>設計</dt><dd>Paraa（達卡），主持建築師Kazi Arefin<span class="en">設計團隊：A S M Khaled Saifullah、Abdul Kadir、Farhin Iqbal、Saira Jannat、S M Kaikobad</span></dd>
-        <dt>地點</dt><dd>孟加拉達卡，Korail聚落的Ershad Maidan<span class="en">聚落裡少數的開放空地，緊鄰Banani與Gulshan</span></dd>
+        <dt>地點</dt><dd>孟加拉達卡，Korail聚落的Ershad Maidan<span class="en">聚落裡少數的開放空地，緊鄰Banani與Gulshan。Google Maps標為Ershad Field (Math)，Plus Code：QCP6+FXJ，約北緯23.7862度、東經90.4124度</span></dd>
         <dt>年代</dt><dd>2024年12月啟用<span class="en">ArchDaily記為2025年完工</span></dd>
         <dt>規模</dt><dd>建築332㎡，兩層；基地（含空地）1,858㎡</dd>
         <dt>機能</dt><dd>多功能室、遊戲區、階梯座位、策展空間、論壇與舞台、互動展廊</dd>
@@ -205,7 +205,6 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 
     <section class="card">
       <h2>觀察方式</h2>
-      <p class="note" id="peopleStatus">擬真模式使用六款 AI 合成寫實人物，並非現場居民照片。人物為會朝向鏡頭的平面剪影；從空地看或站上平台更適合觀察材質。</p>
       <div class="row"><label for="explode">分解</label><input id="explode" type="range" min="0" max="5" step="0.1" value="0"><output id="explodeOut" for="explode">0m</output></div>
       <div class="row"><label for="cut">剖切</label><input id="cut" type="range" min="0" max="100" step="1" value="0"><output id="cutOut" for="cut">關</output></div>
       <div class="row"><label for="sun">日照時間</label><input id="sun" type="range" min="6.5" max="18.5" step="0.25" value="15.5"><output id="sunOut" for="sun">15:30</output></div>
@@ -221,7 +220,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
         <label><input type="checkbox" id="ly-deck" checked><span class="sw" style="background:var(--line)"></span>二樓平台</label>
         <label><input type="checkbox" id="ly-ground" checked><span class="sw" style="background:var(--fg)"></span>地面層</label>
         <label><input type="checkbox" id="ly-context" checked>周邊聚落</label>
-        <label><input type="checkbox" id="ly-people" checked>人物（寫實／比例）</label>
+        <label><input type="checkbox" id="ly-people" checked>人物（1.6m）</label>
         <label><input type="checkbox" id="ly-labels" checked>空間編號</label>
         <label><input type="checkbox" id="ly-plan">總體配置構想</label>
       </div>
@@ -236,7 +235,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 
     <section class="card">
       <h2>模型的限制</h2>
-      <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。</p>
+      <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。</p>
     </section>
   </aside>
 </div>
@@ -698,52 +697,16 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     }
   })();
 
-  // Photographic cutouts stay upright while the camera orbits. Geometry is retained
-  // as a load-failure fallback and for the diagram/clay study modes.
-  var photoPeople = [], scalePeople = [], peopleReady = false;
-  var peopleMaps = [], peopleWorld = new THREE.Vector3();
-  function syncPeople() {
-    var show = mode === 'real' && peopleReady;
-    photoPeople.forEach(function (p) { p.visible = show; });
-    scalePeople.forEach(function (p) { p.visible = !show; });
-  }
-  function loadPeople() {
-    if (peopleMaps.length) return;
-    var loaded = 0;
-    for (var i = 0; i < 6; i++) {
-      var t = new THREE.TextureLoader().load('assets/resident-' + (i + 1) + '.webp', function () {
-        loaded++; if (loaded === 6) { peopleReady = true; syncPeople(); invalidate(); }
-      }, undefined, function () {
-        document.getElementById('peopleStatus').textContent = '人物貼圖未完整載入，暫用比例人物。';
-      });
-      t.encoding = THREE.sRGBEncoding;
-      t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-      peopleMaps.push(t);
-    }
-  }
   // ---------- people for scale ----------
   (function () {
     var cols = [0xd8483e, 0xe98a2b, 0x3f7fbf, 0xc9418c, 0x3aa58a, 0xf0c33c, 0x6b57b8, 0xf2f0ea];
     var heads = reg('head', std({ color: 0x6b4a36 }));
     function person(x, y, z, k, child) {
       var s = child ? 0.72 : 1;
-      loadPeople();
-      var photoMat = new THREE.MeshStandardMaterial({ map: peopleMaps[k % 6],
-        roughness: 1, side: THREE.DoubleSide, alphaTest: 0.25,
-        clippingPlanes: [clip], clipShadows: true });
-      var photo = new THREE.Mesh(new THREE.PlaneGeometry(0.88 * s, 1.65 * s), photoMat);
-      photo.position.set(x, y + 0.825 * s, z);
-      photo.castShadow = true; photo.receiveShadow = true; photo.visible = false;
-      photo.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking,
-        map: peopleMaps[k % 6], alphaTest: 0.25, side: THREE.DoubleSide,
-        clippingPlanes: [clip], clipShadows: true });
-      G.people.add(photo); photoPeople.push(photo);
-      // Exclude rectangles from SSAO's override normal material (it ignores alpha).
-      noAO.push(photo);
       var b = new THREE.Mesh(new THREE.CylinderGeometry(0.15 * s, 0.2 * s, 1.25 * s, 10), reg('person', std({ color: cols[k % cols.length] })));
-      b.position.set(x, y + 0.625 * s, z); b.castShadow = true; G.people.add(b); scalePeople.push(b);
+      b.position.set(x, y + 0.625 * s, z); b.castShadow = true; G.people.add(b);
       var hd = new THREE.Mesh(new THREE.SphereGeometry(0.14 * s, 10, 8), heads);
-      hd.position.set(x, y + 1.43 * s, z); hd.castShadow = true; G.people.add(hd); scalePeople.push(hd);
+      hd.position.set(x, y + 1.43 * s, z); hd.castShadow = true; G.people.add(hd);
     }
     [[6, 0, 9, 0], [9, 0, 12.5, 1, 1], [10.2, 0, 11.2, 3, 1], [12.4, 0, 10, 2], [15, 0, 16, 4], [17.2, 0, 13, 5, 1], [22, 0, 9, 6], [24.5, 0, 18, 0, 1], [27, 0, 12, 7], [13.5, 0, 20.5, 1], [19, 0, 22, 2, 1],
      [14.5, 0.15, 2.3, 3], [16.2, 0.15, 1.4, 5, 1], [26.5, 0.15, 5.2, 4]].forEach(function (p) { person(p[0], p[1], p[2], p[3], p[4]); });
@@ -883,13 +846,6 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       g.globalCompositeOperation = 'source-over';
       blobs(c, 40, 40 * u, 170 * u, '40,36,30', 0.13);
       blobs(c, 24, 40 * u, 150 * u, '255,250,238', 0.09);
-      g.globalCompositeOperation = 'source-atop';
-      for (var pit = 0; pit < 1800; pit++) {
-        var px = rnd() * S, py = rnd() * S, pr = (0.3 + rnd() * 1.7) * u;
-        g.fillStyle = 'rgba(46,40,32,0.18)'; g.fillRect(px, py, pr * 2, pr);
-        gb.fillStyle = '#767676'; gb.fillRect(px, py, pr * 2, pr);
-      }
-      g.globalCompositeOperation = 'source-over';
       speckle(c, 24); speckle(b, 34);
       return { map: tex(c, false, 0.5), bump: tex(b, true, 0.5) };
     }
@@ -922,27 +878,13 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     g6.fillStyle = '#54453a'; g6.fillRect(96, 150, 44, 106);
     g6.fillStyle = '#39424b'; g6.fillRect(172, 150, 48, 40); g6.strokeStyle = '#8b8377'; g6.lineWidth = 3; g6.strokeRect(172, 150, 48, 40);
     speckle(wc, 16);
-    // Fine timber grain and roof relief use linear data maps, not sRGB heights.
-    var wood = cv(512), wg = wood.getContext('2d');
-    wg.fillStyle = '#c3aa87'; wg.fillRect(0, 0, 512, 512);
-    for (var grain = 0; grain < 650; grain++) {
-      wg.strokeStyle = 'rgba(54,35,20,' + (0.03 + rnd() * 0.12) + ')';
-      var gy = rnd() * 512; wg.beginPath(); wg.moveTo(0, gy);
-      wg.bezierCurveTo(160, gy + rnd() * 12, 360, gy - rnd() * 12, 512, gy); wg.stroke();
-    }
-    speckle(wood, 12);
-    var roofB = cv(256), rg = roofB.getContext('2d');
-    for (var rx = 0; rx < 256; rx++) {
-      var rv = Math.round(128 + 75 * Math.sin(rx / 256 * Math.PI * 44));
-      rg.fillStyle = 'rgb(' + rv + ',' + rv + ',' + rv + ')'; rg.fillRect(rx, 0, 1, 256);
-    }
     // distant tower facade
     var tc = cv(256), g7 = tc.getContext('2d'), wins = ['#56677a', '#4a5a6c', '#6b7c8e', '#8fa0ae', '#5e6f80'];
     g7.fillStyle = '#b4b8ba'; g7.fillRect(0, 0, 256, 256);
     for (var ty = 0; ty < 16; ty++) for (var tx = 0; tx < 8; tx++) { g7.fillStyle = wins[Math.floor(rnd() * wins.length)]; g7.fillRect(tx * 32 + 4, ty * 16 + 3, 24, 9); }
     speckle(tc, 8);
     return { brick: B.map, brickB: B.bump, jaali: J.map, jaaliB: J.bump, conc: tex(cc, false, 0.25), concB: tex(cb, true, 0.25),
-      wood: tex(wood, false, 0.5), woodB: tex(wood, true, 0.5), roofB: tex(roofB, true), dirt: tex(dc, false, 0.1), dirtB: tex(db, true, 0.1), roof: tex(rc), wall: tex(wc), tower: tex(tc) };
+      dirt: tex(dc), dirtB: tex(db, true), roof: tex(rc), wall: tex(wc), tower: tex(tc) };
   }
   // plain white screen with the same holes, for the monochrome model
   var holesTex = (function () {
@@ -961,17 +903,17 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     cwall: 0xffffff, croof: 0xffffff, ctree: 0xffffff, ctrunk: 0xcfcbc1, leaf: 0xd8d4ca, trunk: 0xcfcbc1 };
   function realLook() {
     return {
-      brick: { hex: 0xffffff, map: R.brick, bump: R.brickB, bs: 0.024, rough: 0.96 },
-      jaali: { hex: 0xffffff, map: R.jaali, bump: R.jaaliB, bs: 0.024, rough: 0.96 },
+      brick: { hex: 0xffffff, map: R.brick, bump: R.brickB, bs: 0.012, rough: 0.95 },
+      jaali: { hex: 0xffffff, map: R.jaali, bump: R.jaaliB, bs: 0.012, rough: 0.95 },
       conc: { hex: 0xffffff, map: R.conc, bump: R.concB, bs: 0.004 },
-      deck: { hex: 0xe2dccd, map: R.conc, bump: R.concB, bs: 0.009 },
+      deck: { hex: 0xe2dccd, map: R.conc },
       pave: { hex: 0xc59a80, map: R.brick },
-      wood: { hex: 0x92724f, map: R.wood, bump: R.woodB, bs: 0.006, rough: 0.87 },
-      teal: { hex: 0x388e80, rough: 0.72 }, purple: { hex: 0x665088, rough: 0.72 }, pink: { hex: 0x9d4f71, rough: 0.72 },
+      wood: { hex: 0x6e4f33, rough: 0.8 },
+      teal: { hex: 0x12a892, rough: 0.5 }, purple: { hex: 0x6238c8, rough: 0.5 }, pink: { hex: 0xbd2380, rough: 0.5 },
       mesh: { hex: 0x2fb9a2, op: 0.42 },
       leaf: { hex: 0x4a7d36 }, trunk: { hex: 0x4d3f31 }, ctrunk: { hex: 0x4d3f31 },
       field: { hex: 0xffffff, map: R.dirt, bump: R.dirtB, bs: 0.012 }, earth: { hex: 0xcfc6b6, map: R.dirt }, alley: { hex: 0xa59d90, map: R.dirt }, stage: { hex: 0xc0563a, map: R.dirt },
-      cwall: { hex: 0xffffff, map: R.wall }, croof: { hex: 0xffffff, map: R.roof, bump: R.roofB, bs: 0.022, rough: 0.82 }, far: { hex: 0xb4b2b0, map: R.tower }
+      cwall: { hex: 0xffffff, map: R.wall }, croof: { hex: 0xffffff, map: R.roof, rough: 0.6 }, far: { hex: 0xb4b2b0, map: R.tower }
     };
   }
   function applyLooks() {
@@ -1036,7 +978,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     var k = Math.max(0.12, Math.min(1, Math.sin(alt) * 1.9));
     if (mode === 'real') {
       var day = sm(-1.5, 9, deg), night = 1 - sm(-7, 3, deg);
-      sun.intensity = 2.15 * day;
+      sun.intensity = 1.6 * day;
       sun.color.copy(key(deg, [[0, 0xff8a48], [6, 0xffb673], [16, 0xffe6c8], [30, 0xfff6ea]])).convertSRGBToLinear();
       var U = sky.material.uniforms;
       pre(key(deg, ZEN), U.zen.value);
@@ -1046,8 +988,8 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       scene.fog.color.copy(U.hor.value);
       hemi.color.copy(key(deg, ZEN)).lerp(tmpC.copy(key(deg, HOR)), 0.5).convertSRGBToLinear();
       hemi.groundColor.copy(key(deg, [[-10, 0x2a2630], [6, 0x7d6c5a], [18, 0x85796a]])).convertSRGBToLinear();
-      hemi.intensity = 0.48 + 0.30 * sm(-8, 12, deg);
-      renderer.toneMappingExposure = 1.05 + 0.25 * night;
+      hemi.intensity = 0.36 + 0.22 * sm(-8, 12, deg);
+      renderer.toneMappingExposure = 1 + 0.45 * night;
       lamps.forEach(function (l) { l.intensity = 1.6 * night; l.visible = night > 0.02; });
       M.glow.opacity = 0.18 + 0.82 * night;
       [M.lanternA, M.lanternB, M.lanternC].forEach(function (m) { m.emissiveIntensity = 0.6 + 2.4 * night; });
@@ -1122,9 +1064,9 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     renderer.toneMappingExposure = 1;
     sky.visible = m === 'real'; M.glow.visible = m === 'real';
     if (m !== 'real') lamps.forEach(function (l) { l.visible = false; });
-    applyLooks(); applyTheme(); updateLight(); syncPeople();
+    applyLooks(); applyTheme(); updateLight();
     scene.traverse(function (o) { if (o.material) o.material.needsUpdate = true; });
-    if (finalPass) finalPass.uniforms.vig.value = m === 'real' ? 0.10 : 0;
+    if (finalPass) finalPass.uniforms.vig.value = m === 'real' ? 0.3 : 0;
     Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mode') === m ? 'true' : 'false'); });
     var lb = document.getElementById('ly-labels');
     if (m === 'real' && lb.checked) { lb.checked = false; labelsEl.hidden = true; autoHid = true; }
@@ -1250,7 +1192,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
 
   var saved = null;
   try { saved = localStorage.getItem('machan-mode'); } catch (e) {}
-  setMode(saved === 'clay' || saved === 'diagram' ? saved : 'real');
+  setMode(saved === 'clay' || saved === 'real' ? saved : 'diagram');
 
   var offsets = { ground: 0, site: 0, deck: 1, upper: 2, canopy: 3 };
   window.MACHAN = { renderer: renderer, scene: scene, camera: camera, controls: controls, groups: G, mats: M, clip: clip, noAO: noAO, box: box, reg: reg, invalidate: invalidate, views: views, go: go, setMode: setMode, getMode: function () { return mode; }, getSSAO: function () { return ssao; }, boxLine: boxLine, boxFill: boxFill };
@@ -1269,10 +1211,6 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     if (!dirty) return;
     dirty = false;
     sky.position.copy(camera.position);
-    photoPeople.forEach(function (p) {
-      p.getWorldPosition(peopleWorld);
-      p.rotation.y = Math.atan2(camera.position.x - peopleWorld.x, camera.position.z - peopleWorld.z);
-    });
     if (mode !== 'diagram' && composer) composer.render(); else renderer.render(scene, camera);
     if (!labelsEl.hidden) {
       var w = stage.clientWidth, h = stage.clientHeight;
@@ -1498,12 +1436,12 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     },
     500: {
       tag: '城市尺度', title: '1:500　空地和它的邊',
-      range: '盒子代表實際75×75×35m：整棟Machan、整片空地，加上周圍幾排房屋。建築縮小後約6.2×1.2×1.8cm。',
+      range: '盒子代表實際75×75×35m：整棟Machan、整片空地（南北約50m、東西約28m），加上周圍幾排房屋。建築縮小後約6.2×1.2×1.8cm。',
       idea: '在這個尺度，Machan只是一條6cm長的薄片，貼在空地的邊上。主角是空地：聚落裡幾乎沒有留白，建築選擇不佔它，只把它的一條邊做厚。模型要讓人一眼看出「滿」和「空」的對比。',
       where: '以空地為中心，四周各留幾排房屋。',
       how: ['房屋用5到10mm的木塊，高度略有變化，頂面斜切一刀表示鐵皮屋頂。', '空地就是底板，什麼都不放；Machan用不同方向的木紋或薄薄一層顏色區分。', '巷道是木塊之間留下的縫，寬1到3mm。'],
       alt: '只做空地周圍第一排房屋，其餘留白，強調「邊」。',
-      check: '房屋位置要用衛星影像或OpenStreetMap描出來，網頁上的聚落只是示意。空地的尺寸在各份圖面上不一致。'
+      check: '空地大小是在Google Maps衛星影像上量的，誤差約3m。房屋位置要自己描：把衛星圖印成20m等於4cm，就是1:500的底圖；網頁上的房屋只是示意。'
     },
     1000: {
       tag: '城市尺度', title: '1:1000　低矮的紋理，遠方的高樓',
@@ -1512,7 +1450,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       where: '以Machan和空地為中心，向外各75m。',
       how: ['不必一棟一棟做：在3到5mm厚的balsa板上用刀刻出巷道，整片板子就是聚落的紋理。', '空地整塊挖掉，Machan用一根上色的細木條表示。', '後緣立一片薄板，割出高樓的剪影，高5到7cm。'],
       alt: '不做背板，只留空白的盒高，讓聚落的扁平自己說話。',
-      check: 'Korail的面積在各資料中從約90到160英畝不等。150m的範圍碰不碰得到湖岸，要對照衛星影像；背板上的高樓只是示意。'
+      check: '從Google Maps衛星影像看，Machan四周至少100m內都是聚落，150m見方的盒子碰不到湖岸。把衛星圖印成20m等於2cm，就是1:1000的底圖。背板上的高樓只是示意。'
     }
   };
   function el(tag, cls, text) {
@@ -1605,6 +1543,39 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
   apply(false);
 })();
 </script>
+<script>
+(function () {
+  'use strict';
+  // Site corrections measured on satellite imagery of Ershad Field (Plus Code QCP6+FXJ, Dhaka): field outline and a north arrow.
+  var A = window.MACHAN, THREE = window.THREE;
+  if (!A || !THREE) return;
+  var site = A.groups.site, field = null;
+  site.children.forEach(function (o) { if (o.geometry && o.geometry.parameters && o.geometry.parameters.width === 40) field = o; });
+  function flat(points) {
+    var s = new THREE.Shape();
+    points.forEach(function (p, i) { if (i) s.lineTo(p[0], -p[1]); else s.moveTo(p[0], -p[1]); });
+    return new THREE.ShapeGeometry(s);
+  }
+  if (field) {
+    // about 50 m north to south and 28 m east to west, building included; x is north to south, z grows toward the west
+    var geo = flat([[-7.4, 6], [-7.4, 23], [0, 28.1], [41.3, 28.1], [41.3, -1], [32, -1], [32, 3.9], [-1, 3.9], [-1, 6]]), uv = geo.attributes.uv;
+    for (var i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8);
+    field.geometry.dispose(); field.geometry = geo; field.position.set(0, 0, 0);
+  }
+  var ink = new THREE.MeshBasicMaterial({ color: 0x0d0e10, fog: false });
+  var arrow = new THREE.Mesh(flat([[33.4, 24.5], [35.6, 23.5], [35.6, 24.2], [38, 24.2], [38, 24.8], [35.6, 24.8], [35.6, 25.5]]), ink);
+  arrow.rotation.x = -Math.PI / 2; arrow.position.y = 0.05; site.add(arrow);
+  var c = document.createElement('canvas');
+  c.width = c.height = 64;
+  var g = c.getContext('2d');
+  g.fillStyle = '#3a3d42'; g.font = '700 52px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('N', 32, 35);
+  var tex = new THREE.CanvasTexture(c);
+  tex.encoding = THREE.sRGBEncoding;
+  var n = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+  n.position.set(32.4, 0.9, 24.5); n.scale.set(1.7, 1.7, 1); site.add(n);
+  A.noAO.push(arrow, n);
+  A.invalidate();
+})();
+</script>
 </body>
 </html>
-
