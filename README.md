@@ -66,3 +66,12 @@ JavaScript 語法通過；以 three.js r128 搭配模擬 renderer 執行初始�
 - **功能：** 圖解與素模、五個視角、分解、剖切、日照時間（春秋分，依各案緯度）、空間編號說明、15×15×7cm模型盒在各比例尺下的範圍；「同比例尺比較」把四個模型排成一列，桃紅色線框是Machan的量體。
 - **限制：** 全部依ArchDaily等來源的圖面與照片推估，不是測繪。AFER的露臺位置是示意；Leaf Villa的平面與立面比例尺互相矛盾，採用立面（約16m），方位未知；Inner Court的屋頂坡度與內庭尺寸為估計；Miyota的屋頂與地形簡化。各案的說明與來源連結在頁面右側的資料卡。
 - 單一HTML檔，沒有圖片資產，不收錄任何原始圖面或照片。部署時須與`index.html`一起上傳。
+
+## 英文版 English version（2026-11-13）
+
+兩個頁面右上角都有「中文／English」切換。English: both pages have a language switch at the top right; add `?lang=en` to the address to open directly in English.
+
+- 英文版連結：https://korail-community-platform.vercel.app/?lang=en 與 https://korail-community-platform.vercel.app/cases.html?lang=en
+- 語言的決定順序：網址的`?lang=en`或`?lang=zh`，其次是上次的選擇（存在瀏覽器），最後依瀏覽器語言（中文瀏覽器顯示中文，其他顯示英文）。
+- 做法：頁面本身維持中文，`index.html`與`cases.html`結尾各有一段`<!-- i18n:start -->`到`<!-- i18n:end -->`的區塊，裡面是中英對照表（`EXACT`）與含數字字串的規則（`RULES`），在畫面上把中文換成英文。
+- **新增或修改介面文字時，要在同一頁的對照表補上英文**；對照表的鍵要和畫面上的中文一字不差（包含空格與全形標點）。沒有對應的字串會維持中文，不會出錯。

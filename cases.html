@@ -901,6 +901,239 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
   requestAnimationFrame(frame);
 })();
 </script>
+<!-- i18n:start -->
+<style>
+/* language switch and English-only layout tweaks */
+.seg.lang { margin-left: auto; }
+
+html[lang="en"] .facts { grid-template-columns: 5.4em minmax(0, 1fr); }
+html[lang="en"] .row { grid-template-columns: 6.6em minmax(0, 1fr) 3.6em; }
+</style>
+<script>
+/* English version of the page.
+   The page itself stays in Traditional Chinese: this block translates what is on screen.
+   EXACT maps a Chinese string (one text node or attribute, trimmed) to English; RULES handle
+   strings that contain numbers. Anything without an entry is left in Chinese, so when you add
+   or change interface text, add its English here too.
+   Language: ?lang=en or ?lang=zh in the address, then the saved choice, then the browser language. */
+(function () {
+  var EXACT = {
+    "Machan 3D模型": "Machan 3D Model",
+    "圖解": "Diagram",
+    "素模": "Clay",
+    "擬真": "Realistic",
+    "拖曳旋轉，滾輪或雙指縮放，右鍵或雙指平移": "Drag to rotate, scroll or pinch to zoom, right-click or two-finger drag to pan",
+    "鳥瞰": "Aerial",
+    "正上方": "Top",
+    "這個瀏覽器無法啟用WebGL，3D模型沒辦法顯示。請換用新版的Chrome、Edge、Safari或Firefox。": "This browser cannot start WebGL, so the 3D model cannot be shown. Please use a recent version of Chrome, Edge, Safari or Firefox.",
+    "建築基本資料": "Building facts",
+    "設計": "Design",
+    "地點": "Location",
+    "年代": "Year",
+    "規模": "Size",
+    "構造": "Structure",
+    "資料來源：": "Sources: ",
+    "最高": "Max. height",
+    "觀察方式": "Viewing",
+    "分解": "Explode",
+    "剖切": "Section",
+    "關": "Off",
+    "日照時間": "Time of day",
+    "空間編號": "Numbered places",
+    "不顯示": "None",
+    "空間說明": "Places",
+    "點選編號": "Select a number",
+    "模型上的圓點和下方清單是對應的。": "The dots on the model match the list below.",
+    "顯示方式": "Display mode",
+    "模型比例尺": "Model scale",
+    "。": ".",
+    "亞太四案3D模型": "Four Asia-Pacific Cases in 3D",
+    "當代建築課程亞太篇的另外四個案例。依圖面與照片推估的量體模型，不是測繪。第五個案例見": "The other four cases from the Asia-Pacific unit of a Contemporary Architecture course. Massing models estimated from drawings and photographs, not surveys. For the fifth case, see ",
+    "同比例尺比較": "Same-scale comparison",
+    "四案同比例尺比較": "All four at the same scale",
+    "從南側看": "From the south",
+    "從東側看": "From the east",
+    "從北側看": "From the north",
+    "案例": "Case",
+    "案例的3D量體模型，可拖曳旋轉": "3D massing model of the case; drag to rotate",
+    "AFER Hangang、Hideout Leaf Villa、The Inner Court House、Cordmark Miyota的互動3D量體模型：可切換案例、分解、剖切、調整日照，並以同一比例尺並排比較。": "Interactive 3D massing models of AFER Hangang, Hideout Leaf Villa, The Inner Court House and Cordmark Miyota: switch cases, explode, cut a section, change the sun, and compare all four at the same scale.",
+    "東西向": "East–west",
+    "南北向": "North–south",
+    "基地與周邊": "Site and surroundings",
+    "作業模型盒 15×15×7cm": "Study model box, 15×15×7 cm",
+    "選一個比例尺，場景中會出現15×15×7cm模型盒代表的實際範圍。": "Pick a scale to see the real extent that a 15×15×7 cm model box stands for.",
+    "比較模式不顯示模型盒。": "The model box is not shown in comparison mode.",
+    "植栽參考：": "Planting references: ",
+    "韓國赤松分布": "Red pine distribution in Korea",
+    "印尼椰子": "Coconut palm in Indonesia",
+    "越南欖仁": "Tropical almond in Vietnam",
+    "御代田森林": "Miyota's forests",
+    "四個模型用同一個比例尺並排，由左到右是AFER Hangang、Hideout Leaf Villa、The Inner Court House、Cordmark Miyota。最右邊的桃紅色線框是Machan的量體（約31×6×9m），當作對照的尺。": "The four models stand side by side at one scale. From left to right: AFER Hangang, Hideout Leaf Villa, The Inner Court House, Cordmark Miyota. The magenta wireframe at the far right is the massing of Machan (about 31×6×9 m), as a yardstick.",
+    "AFER Hangang有10層樓、長約62m，其餘三案都在兩到三層、20m以內，放在一起可以看出這一章五個案例的尺度差了多少。": "AFER Hangang has 10 storeys and is about 62 m long; the other three are two to three storeys and about 20 m or less. Together they show how far apart in scale the five cases of this unit are.",
+    "擬真模式加入依材質尺度生成的表面紋理與凹凸、天空環境反射、透光葉叢與 AI 合成人物。首爾以赤松（Pinus densiflora）樹形、峇里島以椰子（Cocos nucifera）羽狀棕櫚、藩郎以欖仁（Terminalia catappa）層狀樹冠、御代田以落葉松／闊葉混交林與春季櫻樹作區域地景參考；除原模型註明的櫻樹外，未確認現場樹種。人物不是現場照片，植栽位置、季節與材質老化均為示意。切換素模可對照原始量體。": "Realistic mode adds surface textures and relief generated at material scale, sky reflections, translucent foliage and AI-generated figures. As regional landscape references, Seoul uses the form of Japanese red pine (Pinus densiflora), Bali the feathered fronds of coconut palm (Cocos nucifera), Phan Rang the tiered crown of tropical almond (Terminalia catappa), and Miyota a mixed larch and broadleaf woodland with a cherry tree in spring. Apart from the cherry tree noted in the original model, the species on each site have not been confirmed. The figures are not site photographs, and planting positions, season and material weathering are indicative. Switch to Clay to compare with the plain massing.",
+    "韓國首爾龍山區西氷庫洞": "Seobinggo-dong, Yongsan-gu, Seoul, South Korea",
+    "集合住宅28戶，地上10層、地下5層，高34m；基地2,945㎡，總樓地板16,028㎡": "Housing, 28 units; 10 storeys above ground and 5 below, 34 m high; site 2,945 m², gross floor area 16,028 m²",
+    "鋼筋混凝土樑柱，石灰岩外牆": "Reinforced concrete frame, limestone cladding",
+    "依ArchDaily刊載的配置、平面、南向立面與剖面推估。主棟長約43m、東棟約15m，兩棟之間有約4.7m的通道。南側逐層退縮的幅度取自剖面，但每一層露台的位置與長度是示意，沒有逐一對圖；圓角、玻璃欄杆和地下五層都省略了。": "Estimated from the site plan, floor plans, south elevation and section published on ArchDaily. The main block is about 43 m long and the east block about 15 m, with a passage of about 4.7 m between them. The amount each floor steps back on the south side is taken from the section, but the position and length of each terrace are indicative and were not matched to the drawings floor by floor. Rounded corners, glass balustrades and the five basement levels are left out.",
+    "逐層退縮的露台": "Stepped terraces",
+    "南側每往上一層就往北退一點，退出來的樓板成為下一戶的露台。剖面上看，北側是垂直的，南側是斜的。": "Each floor on the south side sets back a little further north, and the slab this leaves exposed becomes the terrace of the next unit. In section the north side is vertical and the south side slopes.",
+    "兩棟之間的通道": "Passage between the blocks",
+    "主棟與東棟之間留了一道約4.7m寬的縫，地面有一條水池，從北側入口可以直接看到南邊的庭園。": "A gap about 4.7 m wide is left between the main block and the east block, with a strip of water at ground level. From the north entrance you can see straight through to the garden on the south.",
+    "北側入口": "North entrance",
+    "車道與兩個主要入口都在北側，把南邊完整留給庭園和露台。": "The driveway and both main entrances are on the north side, leaving the whole south side to the garden and the terraces.",
+    "屋頂": "Roof",
+    "頂部幾層只佔中段，天際線從中間往兩側一階一階降下來。": "The top floors occupy only the middle, so the skyline steps down from the centre towards both ends.",
+    "南側庭園": "South garden",
+    "基地南側是種了松樹的庭園，比街道高出一段。": "The south of the site is a garden planted with pines, raised above the street.",
+    "印尼峇里島Karangasem縣Sidemen": "Sidemen, Karangasem Regency, Bali, Indonesia",
+    "度假住宿，160㎡": "Holiday accommodation, 160 m²",
+    "黑竹與黃竹結構，陶土瓦屋面，石灰石基座，曲面玻璃": "Black and yellow bamboo structure, clay tile roof, limestone plinth, curved glass",
+    "平面圖與立面圖的比例尺互相矛盾：照平面的比例尺算只有8m左右，照立面算約15m。這裡採用立面的尺寸，因為圖上的人物高度和160㎡的面積都與它吻合。四片葉形屋頂用簡化的曲面表示，竹構只畫出外圈的斜撐，圖面沒有標指北，方位未知。": "The scale bars on the plan and the elevation contradict each other: by the plan it is only about 8 m across, by the elevation about 15 m. The model follows the elevation, because the height of the people drawn and the 160 m² floor area both agree with it. The four leaf-shaped roofs are shown as simplified curved surfaces, only the outer raking bamboo struts are drawn, and the drawings have no north arrow, so the orientation is unknown.",
+    "三片下層葉片": "Three lower leaves",
+    "三片陶瓦屋頂從西北角的同一點往外張開，葉尖壓低到人的高度，彼此交疊。": "Three clay-tile roofs open out from a single point at the north-west corner, their tips pressed down to head height and overlapping one another.",
+    "上層葉片": "Upper leaf",
+    "第四片葉子抬高，蓋在橢圓形的夾層上方，和下面三片之間留出通風的縫。": "The fourth leaf is lifted above the oval mezzanine, leaving a ventilation gap between it and the three below.",
+    "橢圓夾層": "Oval mezzanine",
+    "懸在起居空間上方的橢圓平台，由螺旋梯上去。": "An oval platform hung above the living space, reached by a spiral stair.",
+    "曲面玻璃臥室": "Curved-glass bedroom",
+    "臥室用曲面玻璃圍出來，其餘空間對庭園完全敞開。": "The bedroom is enclosed in curved glass; the rest of the space is fully open to the garden.",
+    "斜撐竹柱": "Raking bamboo columns",
+    "屋頂邊緣由成對傾斜的竹柱撐起，柱腳收在基座邊緣。": "The roof edges are held up by pairs of leaning bamboo columns, with their feet at the edge of the plinth.",
+    "石灰石基座": "Limestone plinth",
+    "有機形狀的平台略高於庭園地面。": "An organically shaped platform slightly above the garden.",
+    "越南藩郎（Phan Rang，原寧順省，2025年併入慶和省）": "Phan Rang, Vietnam (formerly in Ninh Thuận Province, merged into Khánh Hòa Province in 2025)",
+    "獨棟住宅，250㎡；約20.5×5m的街角管屋": "Detached house, 250 m²; a corner tube house of about 20.5×5 m",
+    "外露骨材混凝土，深色屋瓦，通風磚": "Exposed-aggregate concrete, dark roof tiles, ventilation blocks",
+    "依ArchDaily刊載的平面、長向剖面、北向立面與軸測圖推估。長邊朝北臨街，東端是切角的街角。圖面沒有橫向剖面，屋頂的坡度與屋脊位置是從立面和軸測圖猜的；開口只畫出北向立面上的幾處，室內隔間省略。": "Estimated from the plans, long section, north elevation and axonometric drawing published on ArchDaily. The long side faces the street to the north, and the east end is a chamfered street corner. There is no cross section in the drawings, so the roof pitch and ridge position are guessed from the elevation and the axonometric. Only a few openings on the north elevation are drawn, and interior partitions are left out.",
+    "街角的車庫": "Garage at the corner",
+    "東端切角的位置是車庫和主要入口，建築用最小的面對著街角。": "The chamfered east end holds the garage and the main entrance; the building turns its smallest face to the street corner.",
+    "內庭": "Inner court",
+    "二樓北側挖出一個種樹的露台，屋頂在這裡開了一個口，樹從裡面長出來。全屋的光和風主要從這裡進來。": "A planted terrace is carved out of the north side of the upper floor, and the roof opens above it so that the tree grows out through it. Most of the house's light and air come in here.",
+    "一樓的長條空間": "The long ground floor",
+    "客廳、餐廚和多用途空間沿著20m的長向一字排開，樓梯貼著南側的共同壁。": "The living room, kitchen and dining area and a multipurpose space line up along the 20 m length, with the stair against the party wall on the south.",
+    "深色瓦屋頂": "Dark tile roof",
+    "深色屋瓦從屋脊一路包到二樓窗戶上緣，把上半部做成一個封閉的量體，只留幾道水平窄縫。": "Dark tiles wrap from the ridge down to the top of the upper-floor windows, making the upper half a closed volume with only a few horizontal slits.",
+    "設備平台": "Service deck",
+    "西端凸出屋頂的方盒子是設備平台。": "The box rising above the roof at the west end is the service deck.",
+    "背對街道的立面": "Facades turned away from the street",
+    "兩個臨街面的開口都很少，下層用通風磚，上層只有幾個小窗。": "Both street fronts have very few openings: ventilation blocks below and only a few small windows above.",
+    "日本長野縣御代田町": "Miyota, Nagano Prefecture, Japan",
+    "社區設施；基地2,167㎡，建築面積128㎡，樓地板186㎡，最高7.34m": "Community facility; site 2,167 m², building area 128 m², floor area 186 m², maximum height 7.34 m",
+    "木構造，栗木心柱，磚造蓄熱爐（pechka），鍍鋁鋅鋼板屋面，鋼筋混凝土基礎": "Timber structure, chestnut central post, brick masonry heater (pechka), galvalume steel roofing, reinforced concrete foundation",
+    "JIA優秀建築選2023": "JIA Excellent Architecture Selection 2023",
+    "依ArchDaily刊載的配置、兩層平面、兩張剖面與分解軸測圖推估，最高7.34m取自JIA的資料。兩層的木造主體簡化成一個約7.3×9.1m的方盒子；螺旋狀往外展開的下屋屋頂簡化成南、東兩片斜板和一個轉角；地形的高低差沒有做。": "Estimated from the site plan, two floor plans, two sections and exploded axonometric published on ArchDaily; the maximum height of 7.34 m is from JIA. The two-storey timber core is simplified to a box of about 7.3×9.1 m, the lean-to roofs that spiral outwards are simplified to two sloping planes on the south and east and one corner, and the slope of the ground is not modelled.",
+    "土間（doma）": "Earthen floor (doma)",
+    "南側是不鋪地板的土間，直接和戶外的下屋連在一起，是整棟建築最主要的共用空間。": "The south side is a doma with no raised floor, joined directly to the lean-to outside. It is the building's main shared space.",
+    "下屋（geya）": "Lean-to roofs (geya)",
+    "低矮的金屬屋頂繞著主體往南、往東展開，下面是半戶外的工作空間。": "Low metal roofs wind around the core to the south and east, with semi-outdoor work space beneath.",
+    "栗木心柱": "Chestnut central post",
+    "一根栗木大柱從地面貫穿到屋頂，旁邊是磚造的蓄熱爐，煙囪穿出屋面。": "One large chestnut post runs from the ground to the roof. Beside it is the brick masonry heater, whose chimney goes out through the roof.",
+    "二樓的木箱": "Timber boxes upstairs",
+    "圖書室和兩個工作室是放在木構架裡的幾個木箱。": "The library and two studios are timber boxes set inside the timber frame.",
+    "金屬屋頂": "Metal roof",
+    "分解軸測圖把建築分成「天、人、地」三層：金屬屋頂、木構與木箱、混凝土基礎。把分解滑桿拉開就是這三層。": "The exploded axonometric divides the building into three layers, \"sky, people, earth\": the metal roof, the timber frame and boxes, and the concrete foundation. Pull the Explode slider to see these three layers.",
+    "既有的櫻花樹": "Existing cherry tree",
+    "主要入口朝南，對著基地上原有的一棵櫻花樹。": "The main entrance faces south, towards a cherry tree that was already on the site."
+  };
+  var RULES = [
+    [/^約([\d.]+)m$/, '~$1 m'],
+    [/^(\d+)　(.+)$/, function (m, n, rest) { return n + '. ' + sub(rest); }],
+    [/^(\d+) (.+)$/, function (m, n, rest) { return n + ' ' + sub(rest); }],
+    [/^(\d{4})年（設計(.+?)，施工(.+?)）$/, '$1 (design $2, construction $3)'],
+    [/^(\d{4})年$/, '$1'],
+    [/^日照以春分、秋分估算，緯度(取北緯|北緯|南緯)([\d.]+)度。北方在畫面的遠端（鳥瞰時），剖切從南側往北切入。$/, function (m, k, d) { return 'Sunlight is estimated for the equinoxes at ' + (k === '取北緯' ? 'an assumed latitude of ' + d + '°N' : d + (k === '南緯' ? '°S' : '°N')) + '. North is at the far side of the view (in the aerial view), and the section cuts in from the south.'; }],
+    [/^盒子代表實際([\d.]+)×([\d.]+)×([\d.]+)m。建築縮小後約([\d.]+)×([\d.]+)×([\d.]+)cm，(整棟放得下。|放不下整棟，要取局部或換比例尺。)$/, function (m, a, b, c, x, y, z, f) { return 'The box stands for ' + a + '×' + b + '×' + c + ' m in reality. The building shrinks to about ' + x + '×' + y + '×' + z + ' cm: ' + (f === '整棟放得下。' ? 'the whole building fits.' : 'it does not fit, so take a part or change the scale.'); }]
+  ];
+  var HAN = /[㐀-鿿　-〿＀-￯]/;
+  var ATTRS = ['aria-label', 'title', 'alt', 'placeholder'];
+  var KEY = 'site-lang', lang = 'zh', missing = {};
+  var texts = new WeakMap(), attrs = new WeakMap();
+
+  function translate(s) {
+    var m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s), k = m[2];
+    if (!k || !HAN.test(k)) return null;
+    var t = Object.prototype.hasOwnProperty.call(EXACT, k) ? EXACT[k] : null;
+    if (t == null) {
+      for (var i = 0; i < RULES.length; i++) {
+        if (RULES[i][0].test(k)) { t = k.replace(RULES[i][0], RULES[i][1]); break; }
+      }
+    }
+    if (t == null) { missing[k] = 1; return null; }
+    return m[1] + t + m[3];
+  }
+  function sub(s) { var t = translate(s); return t == null ? s : t; }
+
+  function doText(n) {
+    var v = n.nodeValue, rec = texts.get(n);
+    if (lang === 'en') {
+      if (rec && v === rec.en) return;
+      var t = translate(v);
+      if (t != null) { texts.set(n, { zh: v, en: t }); n.nodeValue = t; }
+    } else if (rec && v === rec.en) { n.nodeValue = rec.zh; }
+  }
+  function doAttr(el, name) {
+    var v = el.getAttribute(name); if (v == null) return;
+    var all = attrs.get(el), rec = all && all[name];
+    if (lang === 'en') {
+      if (rec && v === rec.en) return;
+      var t = translate(v);
+      if (t != null) { if (!all) { all = {}; attrs.set(el, all); } all[name] = { zh: v, en: t }; el.setAttribute(name, t); }
+    } else if (rec && v === rec.en) { el.setAttribute(name, rec.zh); }
+  }
+  function skip(el) { return !el || el.nodeName === 'SCRIPT' || el.nodeName === 'STYLE' || (el.closest && el.closest('[data-no-translate]')); }
+  function walk(root) {
+    if (root.nodeType === 3) { if (!skip(root.parentNode)) doText(root); return; }
+    if (root.nodeType !== 1 || skip(root)) return;
+    var i, j, els = [root].concat(Array.prototype.slice.call(root.querySelectorAll('[aria-label],[title],[alt],[placeholder]')));
+    for (i = 0; i < els.length; i++) for (j = 0; j < ATTRS.length; j++) if (els[i].hasAttribute(ATTRS[j]) && !skip(els[i])) doAttr(els[i], ATTRS[j]);
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n, list = [];
+    while ((n = w.nextNode())) list.push(n);
+    for (i = 0; i < list.length; i++) if (!skip(list[i].parentNode)) doText(list[i]);
+  }
+
+  var zhTitle = document.title, meta = document.querySelector('meta[name="description"]'), zhMeta = meta ? meta.getAttribute('content') : '';
+  function setLang(l, save) {
+    lang = l === 'en' ? 'en' : 'zh';
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
+    document.title = lang === 'en' ? sub(zhTitle) : zhTitle;
+    if (meta) meta.setAttribute('content', lang === 'en' ? sub(zhMeta) : zhMeta);
+    walk(document.body);
+    Array.prototype.forEach.call(document.querySelectorAll('#langSeg button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
+    if (save) { try { localStorage.setItem(KEY, lang); } catch (e) {} }
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  // the switch, at the right end of the page header
+  var head = document.querySelector('.head');
+  if (head) {
+    var seg = document.createElement('div');
+    seg.className = 'seg lang'; seg.id = 'langSeg'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Language'); seg.setAttribute('data-no-translate', '');
+    [['zh', '中文'], ['en', 'English']].forEach(function (o) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-lang', o[0]); b.setAttribute('lang', o[0] === 'zh' ? 'zh-Hant' : 'en'); b.textContent = o[1];
+      b.addEventListener('click', function () { setLang(o[0], true); });
+      seg.appendChild(b);
+    });
+    head.appendChild(seg);
+  }
+
+  new MutationObserver(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i];
+      if (m.type === 'characterData') { if (!skip(m.target.parentNode)) doText(m.target); }
+      else if (m.type === 'attributes') { if (!skip(m.target)) doAttr(m.target, m.attributeName); }
+      else for (var j = 0; j < m.addedNodes.length; j++) walk(m.addedNodes[j]);
+    }
+  }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+
+  var start = null, q = /[?&]lang=(en|zh)\b/.exec(location.search);
+  if (q) start = q[1];
+  if (!start) { try { start = localStorage.getItem(KEY); } catch (e) {} }
+  if (start !== 'en' && start !== 'zh') start = /^zh\b/i.test(navigator.language || '') ? 'zh' : 'en';
+  setLang(start, !!q);
+  window.SITE_LANG = { get: function () { return lang; }, set: function (l) { setLang(l, true); }, missing: function () { return Object.keys(missing); } };
+})();
+</script>
+<!-- i18n:end -->
 </body>
 </html>
 

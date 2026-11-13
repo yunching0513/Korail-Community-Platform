@@ -1843,6 +1843,292 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
   A.invalidate();
 })();
 </script>
+<!-- i18n:start -->
+<style>
+/* language switch and English-only layout tweaks */
+.seg.lang { margin-left: auto; }
+
+html[lang="en"] .facts { grid-template-columns: 5.4em minmax(0, 1fr); }
+html[lang="en"] .row { grid-template-columns: 6.6em minmax(0, 1fr) 3.6em; }
+</style>
+<script>
+/* English version of the page.
+   The page itself stays in Traditional Chinese: this block translates what is on screen.
+   EXACT maps a Chinese string (one text node or attribute, trimmed) to English; RULES handle
+   strings that contain numbers. Anything without an entry is left in Chinese, so when you add
+   or change interface text, add its English here too.
+   Language: ?lang=en or ?lang=zh in the address, then the saved choice, then the browser language. */
+(function () {
+  var EXACT = {
+    "Machan 3D模型": "Machan 3D Model",
+    "圖解": "Diagram",
+    "素模": "Clay",
+    "擬真": "Realistic",
+    "拖曳旋轉，滾輪或雙指縮放，右鍵或雙指平移": "Drag to rotate, scroll or pinch to zoom, right-click or two-finger drag to pan",
+    "鳥瞰": "Aerial",
+    "正上方": "Top",
+    "這個瀏覽器無法啟用WebGL，3D模型沒辦法顯示。請換用新版的Chrome、Edge、Safari或Firefox。": "This browser cannot start WebGL, so the 3D model cannot be shown. Please use a recent version of Chrome, Edge, Safari or Firefox.",
+    "建築基本資料": "Building facts",
+    "設計": "Design",
+    "地點": "Location",
+    "年代": "Year",
+    "規模": "Size",
+    "構造": "Structure",
+    "資料來源：": "Sources: ",
+    "最高": "Max. height",
+    "觀察方式": "Viewing",
+    "分解": "Explode",
+    "剖切": "Section",
+    "關": "Off",
+    "日照時間": "Time of day",
+    "空間編號": "Numbered places",
+    "不顯示": "None",
+    "空間說明": "Places",
+    "點選編號": "Select a number",
+    "模型上的圓點和下方清單是對應的。": "The dots on the model match the list below.",
+    "顯示方式": "Display mode",
+    "模型比例尺": "Model scale",
+    "。": ".",
+    "Korail Community Platform，Paraa，達卡，2024年12月啟用。依圖面與照片推估的量體模型。": "Korail Community Platform by Paraa, Dhaka, opened December 2024. A massing model estimated from drawings and photographs.",
+    "影像 ©2026 CNES / Airbus、Maxar Technologies，地圖資料 ©2026 Google": "Imagery ©2026 CNES / Airbus, Maxar Technologies; map data ©2026 Google",
+    "從空地看": "From the field",
+    "站上平台": "On the deck",
+    "巷道側": "Alley side",
+    "Machan社區平台的3D模型，可拖曳旋轉": "3D model of the Machan community platform; drag to rotate",
+    "Machan - Korail Community Platform（Paraa，達卡）的互動3D量體模型：圖解、素模、擬真三種顯示方式，可分解、剖切、調整日照。": "Interactive 3D massing model of Machan - Korail Community Platform (Paraa, Dhaka): diagram, clay and realistic display modes, with exploded view, section cut and sun study.",
+    "名稱": "Name",
+    "Machan是孟加拉語的「平台」": "\"Machan\" means \"platform\" in Bengali",
+    "Paraa（達卡），主持建築師Kazi Arefin": "Paraa (Dhaka), principal architect Kazi Arefin",
+    "設計團隊：A S M Khaled Saifullah、Abdul Kadir、Farhin Iqbal、Saira Jannat、S M Kaikobad": "Design team: A S M Khaled Saifullah, Abdul Kadir, Farhin Iqbal, Saira Jannat, S M Kaikobad",
+    "孟加拉達卡，Korail聚落的Ershad Maidan": "Ershad Maidan in the Korail settlement, Dhaka, Bangladesh",
+    "聚落裡少數的開放空地，緊鄰Banani與Gulshan。Google Maps標為Ershad Field (Math)，Plus Code：QCP6+FXJ，約北緯23.7862度、東經90.4124度": "One of the few open fields in the settlement, next to Banani and Gulshan. Labelled Ershad Field (Math) on Google Maps; Plus Code QCP6+FXJ, about 23.7862°N, 90.4124°E",
+    "2024年12月啟用": "Opened December 2024",
+    "ArchDaily記為2025年完工": "ArchDaily lists completion as 2025",
+    "建築332㎡，兩層；基地（含空地）1,858㎡": "Building 332 m² on two levels; site including the field 1,858 m²",
+    "機能": "Program",
+    "多功能室、遊戲區、階梯座位、策展空間、論壇與舞台、互動展廊": "Multipurpose rooms, play area, stepped seating, curatorial space, forum and stage, interactive gallery",
+    "鋼筋混凝土框架、在地燒製的孔洞磚、磚鋪地面、彩色鋼構遮棚": "Reinforced concrete frame, locally fired perforated brick, brick paving, coloured steel canopies",
+    "結構": "Engineer",
+    "Gravity Engineers（Masrur Kabir）": "Gravity Engineers (Masrur Kabir)",
+    "過程": "Process",
+    "60多場參與式工作坊與駐地計畫，與Korail的青年、社區領袖和學生共同設計": "More than 60 participatory workshops and residencies; co-designed with Korail's young people, community leaders and students",
+    "資助": "Funding",
+    "德國聯邦外交部創意經濟計畫": "German Federal Foreign Office, creative economy programme",
+    "夥伴：歌德學院孟加拉分院、Floating e.V.；屬「Korail: City of Culture」計畫": "Partners: Goethe-Institut Bangladesh, Floating e.V.; part of the \"Korail: City of Culture\" project",
+    "獎項": "Award",
+    "Ammodo Architecture Award 2025，社會參與類": "Ammodo Architecture Award 2025, Social Engagement category",
+    "模型提案 15×15×7cm": "Model proposals, 15×15×7 cm",
+    "同一個盒子，五個比例尺，貫穿的主題是「留空」：磚與磚之間的洞、牆上的洞、架空的地面層、聚落裡的空地、低矮聚落上方的天空。": "One box, five scales, one running theme: leaving things open. The gap between two bricks, the holes in a wall, the open ground floor, the open field in the settlement, the sky above a low settlement.",
+    "只顯示盒內，切出模型的範圍": "Show only what is inside the box",
+    "取哪一段": "Segment",
+    "中段": "Middle",
+    "偏北": "North",
+    "偏南": "South",
+    "選一個比例尺，3D畫面會標出盒子在那個比例下取到的範圍，下面列出概念與做法。": "Pick a scale. The 3D view marks what the box takes in at that scale, and the concept and method are listed below.",
+    "概念": "Concept",
+    "取哪裡": "Where",
+    "做法": "How to build",
+    "備案": "Alternative",
+    "待確認": "To confirm",
+    "材料": "Material",
+    "1:1　一皮磚，一個洞": "1:1 · One course of brick, one gap",
+    "盒子就是實物大小：15×15×7cm。": "The box is the real thing at full size: 15×15×7 cm.",
+    "孟加拉常見的磚約24×11.5×7cm，盒子的高度剛好是一皮磚。盒裡放不下一整塊磚，只放得下磚的一端和旁邊的洞，而這正是整棟建築最小的構成單位。模型可以拿在手上：手伸不伸得過去，貼著看能看到什麼，光照過來影子有多深。": "A common brick in Bangladesh is about 24×11.5×7 cm, so the box is exactly one course high. A whole brick does not fit; only the end of a brick and the gap beside it do, and that is the smallest unit the whole building is made of. The model can be held in the hand: can a hand reach through, what can you see up close, how deep is the shadow when light comes through.",
+    "地面層北側房間面向空地的孔洞磚牆，離地約1m的那一皮。": "The perforated brick wall of the north ground-floor room facing the field, at the course about 1 m above the ground.",
+    "用balsa薄板疊成7cm高的實心木塊，當作磚的一端，約9×15cm。": "Stack thin balsa sheets into a solid block 7 cm high for the end of the brick, about 9×15 cm.",
+    "旁邊留6cm的空，底板上只畫出下一皮磚的輪廓。": "Leave a 6 cm gap beside it, and draw only the outline of the course below on the base.",
+    "木塊保留原色；想對照實物，可以在盒外放一小塊真的磚。": "Keep the wood its natural colour. For comparison, place a small piece of real brick outside the box.",
+    "材料樣本：灰磚的斷面、青綠色鋼網、紫色鋼管扶手各取一段實物大小，並排放進盒子。": "Material samples: a cut face of grey brick, teal steel mesh and a purple steel handrail, each at full size, side by side in the box.",
+    "磚的尺寸與洞的寬度是依照片推估。1:1能不能用balsa以外的材料，要問老師。": "Brick size and gap width are estimated from photographs. Ask the teacher whether materials other than balsa are allowed at 1:1.",
+    "局部特色": "Detail",
+    "1:10　會透光的牆": "1:10 · A wall that lets light through",
+    "盒子代表實際1.5×1.5×0.7m，大約是9皮磚的高度。": "The box stands for 1.5×1.5×0.7 m in reality, about nine courses of brick high.",
+    "到了1:10，看到的不再是一個洞，而是洞的排列。磚一塊接一個空、上下兩皮錯開半格，牆就變成一張會透光透風的網，這是jaali在這棟建築裡的做法。模型的重點是光：從側面打燈，落在盒底的影子就是這面牆在室內地板上的樣子。": "At 1:10 you no longer see one gap but the pattern of gaps. One brick, then one gap, with each course shifted by half a unit, and the wall becomes a net that lets light and air through. This is how jaali is done in this building. The point of the model is light: lit from the side, the shadow on the floor of the box is what this wall casts on the floor inside.",
+    "同一面牆，取1.5m長、0.7m高的一段。": "The same wall, a piece 1.5 m long and 0.7 m high.",
+    "把7mm厚的balsa板裁成24×20mm的小塊當作磚，大約需要40塊。": "Cut 7 mm balsa into 24×20 mm pieces for bricks; about 40 are needed.",
+    "每一皮排成「一塊磚、空半塊」，上下兩皮錯開，疊9皮。": "Lay each course as \"one brick, half a brick of gap\", shift alternate courses, and stack nine courses.",
+    "牆立在15×15cm底板的中間，前後留出地面接影子。": "Stand the wall in the middle of the 15×15 cm base, leaving floor in front and behind to catch the shadow.",
+    "二樓平台邊緣可以坐的矮牆，加上沿著牆轉折的紫色鋼管扶手。": "The seat-height wall at the edge of the upper deck, with the purple steel handrail that follows its turns.",
+    "砌法是從照片判讀的，洞的寬度（約半塊磚）與牆厚要再對照圖面。": "The bond is read from photographs. The gap width (about half a brick) and the wall thickness still need checking against the drawings.",
+    "建築物": "Building",
+    "1:100　中段剖出來": "1:100 · The middle, cut out",
+    "盒子代表實際15×15×7m。整棟長31m、最高約9m，放不進去，所以只取15m長的一段。": "The box stands for 15×15×7 m in reality. The whole building is 31 m long and about 9 m high and does not fit, so only a 15 m length is taken.",
+    "預設取樓梯塔、拱門、中央遮蔭空間和二樓論壇這一段，因為建築最公共的動作都在這裡：一樓架空讓空地延伸進來，樓梯同時是座位，二樓是面向空地的舞台。兩端切斷的地方直接露出剖面，看得到樓板和高低差。": "By default it takes the stair tower, the arch, the shaded space in the middle and the upper-level forum, because the building's most public moves are all here: the open ground floor lets the field run in, the stair is also seating, and the upper level is a stage facing the field. Where the ends are cut, the section is exposed, showing the slabs and the changes of level.",
+    "沿建築長向取15m（用上面的滑桿移動），進深從巷道到空地上的圓形舞台。": "A 15 m length along the building (move it with the slider above), with the depth running from the alley to the circular stage on the field.",
+    "樓板與平台用3mm板，磚牆用2mm板；孔洞磚牆用針或刀尖刺出網點，不必真的鏤空。": "Use 3 mm board for slabs and decks and 2 mm for brick walls. Prick dots into the perforated walls with a needle or knife tip; they need not be cut through.",
+    "遮棚用1×1mm的木條排出來，上紫、桃紅、青綠三色，是整個模型唯一的顏色。": "Lay out the canopies in 1×1 mm strips, coloured purple, magenta and teal: the only colour in the model.",
+    "空地就是底板，圓形舞台刻一圈淺線。": "The field is the base; score a faint circle for the stage.",
+    "改取南段，做互動展廊與上層階梯座位。": "Take the south end instead, with the interactive gallery and the upper stepped seating.",
+    "依推估高度，中段的磚牆頂約7.3m、遮棚頂約7.7m，會超出盒頂0.3到0.7cm，兩端的遮棚更高。可以把遮棚做成可取下的構件，或向老師確認高度限制。": "By the estimated heights, the brick walls in the middle reach about 7.3 m and the canopy about 7.7 m, which is 0.3 to 0.7 cm above the top of the box; the canopies at the ends are higher. Make the canopies removable, or check the height limit with the teacher.",
+    "城市尺度": "Urban scale",
+    "1:500　空地和它的邊": "1:500 · The field and its edges",
+    "盒子代表實際75×75×35m：整棟Machan、整片空地（南北約50m、東西約28m），加上周圍幾排房屋。建築縮小後約6.2×1.2×1.8cm。": "The box stands for 75×75×35 m in reality: all of Machan, the whole field (about 50 m north to south, 28 m east to west) and a few rows of houses around it. The building shrinks to about 6.2×1.2×1.8 cm.",
+    "在這個尺度，Machan只是一條6cm長的薄片，貼在空地的邊上。主角是空地：聚落裡幾乎沒有留白，建築選擇不佔它，只把它的一條邊做厚。模型要讓人一眼看出「滿」和「空」的對比。": "At this scale Machan is just a sliver 6 cm long, pressed against the edge of the field. The field is the subject: the settlement has almost no empty space, and the building chooses not to occupy it, only to thicken one of its edges. The model should show the contrast between full and empty at a glance.",
+    "以空地為中心，四周各留幾排房屋。": "Centred on the field, with a few rows of houses on every side.",
+    "房屋用5到10mm的木塊，高度略有變化，頂面斜切一刀表示鐵皮屋頂。": "Use 5 to 10 mm wood blocks for houses, with slightly varied heights and a sloping cut on top for the tin roofs.",
+    "空地就是底板，什麼都不放；Machan用不同方向的木紋或薄薄一層顏色區分。": "The field is the base with nothing on it; set Machan apart with a different grain direction or a thin wash of colour.",
+    "巷道是木塊之間留下的縫，寬1到3mm。": "Alleys are the gaps left between blocks, 1 to 3 mm wide.",
+    "只做空地周圍第一排房屋，其餘留白，強調「邊」。": "Build only the first row of houses around the field and leave the rest blank, to stress the edge.",
+    "空地大小是在Google Maps衛星影像上量的，誤差約3m。房屋位置要自己描：把衛星圖印成20m等於4cm，就是1:500的底圖；網頁上的房屋只是示意。": "The field was measured on Google Maps satellite imagery, with an error of about 3 m. House positions have to be traced by hand: print the satellite image so that 20 m equals 4 cm and you have a 1:500 base. The houses on this page are only schematic.",
+    "1:1000　低矮的紋理，遠方的高樓": "1:1000 · A low grain, distant towers",
+    "盒子代表實際150×150×70m。Machan縮小後長3.1cm，高不到1cm。": "The box stands for 150×150×70 m in reality. Machan shrinks to 3.1 cm long and less than 1 cm high.",
+    "整個聚落在盒子裡不到1cm高，上面空了6cm，這個空白就是重點。盒高7cm換算是70m，大約是一棟20層大樓的高度。把Gulshan和Banani的天際線割成剪影立在盒子後緣，當作遠景的立面而不是平面位置，一個盒子裡就能同時看到Korail的低和周圍城市的高。": "The whole settlement is less than 1 cm high in the box, with 6 cm of empty space above it, and that emptiness is the point. The 7 cm box height equals 70 m, roughly a 20-storey building. Cut the skylines of Gulshan and Banani as silhouettes and stand them at the back of the box, as a distant elevation rather than a position in plan, and one box shows both how low Korail is and how tall the city around it is.",
+    "以Machan和空地為中心，向外各75m。": "Centred on Machan and the field, 75 m out in each direction.",
+    "不必一棟一棟做：在3到5mm厚的balsa板上用刀刻出巷道，整片板子就是聚落的紋理。": "No need to build house by house: carve the alleys with a knife into a 3 to 5 mm balsa sheet, and the whole sheet becomes the grain of the settlement.",
+    "空地整塊挖掉，Machan用一根上色的細木條表示。": "Cut the field out entirely, and show Machan with one thin coloured strip of wood.",
+    "後緣立一片薄板，割出高樓的剪影，高5到7cm。": "Stand a thin sheet at the back edge, cut into the silhouette of the towers, 5 to 7 cm high.",
+    "不做背板，只留空白的盒高，讓聚落的扁平自己說話。": "Leave out the backdrop and keep only the empty height of the box, letting the flatness of the settlement speak for itself.",
+    "從Google Maps衛星影像看，Machan四周至少100m內都是聚落，150m見方的盒子碰不到湖岸。把衛星圖印成20m等於2cm，就是1:1000的底圖。背板上的高樓只是示意。": "On Google Maps satellite imagery, Machan is surrounded by settlement for at least 100 m in every direction, so a 150 m square box does not reach the lakeshore. Print the satellite image so that 20 m equals 2 cm and you have a 1:1000 base. The towers on the backdrop are only schematic.",
+    "推估尺寸": "Estimated size",
+    "長": "Length",
+    "寬": "Width",
+    "這不是測繪。圖面的比例尺互相矛盾（換算長度25至31m），這裡採用與官方面積332㎡最吻合的31m，高度再用照片中的人物比例校正。": "This is not a survey. The scale bars on the drawings contradict each other (giving lengths from 25 to 31 m). The model uses 31 m, which best matches the official floor area of 332 m², and heights were then checked against the people in the photographs.",
+    "擬真模式使用六款 AI 合成寫實人物，並非現場居民照片。人物為會朝向鏡頭的平面剪影；從空地看或站上平台更適合觀察材質。": "Realistic mode uses six AI-generated figures; they are not photographs of residents. The figures are flat cut-outs that turn to face the camera. The \"From the field\" and \"On the deck\" views are better for looking at materials.",
+    "人物貼圖未完整載入，暫用比例人物。": "The figure images did not all load, so scale figures are shown instead.",
+    "分解會把地面層、平台、上層磚牆、鋼構遮棚逐層拉開。剖切從面向空地的一側往巷道切入。日照以達卡（北緯23.8度）冬季乾季估算，日落約在17:20。": "Explode pulls apart the ground floor, the deck, the upper brick walls and the steel canopies. The section cuts in from the field side towards the alley. Sunlight is estimated for the dry winter season in Dhaka (23.8°N), with sunset at about 17:20.",
+    "畫面左上角可以切換顯示方式。圖解用顏色區分構件；素模是單色量體，接近白模的讀法；擬真加上材質、天空、霧霾和陰影，把時間拉到17:30以後會點亮燈籠。": "Switch the display mode at the top left of the view. Diagram colours each component; Clay is a single-colour massing, read like a white model; Realistic adds materials, sky, haze and shadows, and the lanterns come on after 17:30.",
+    "圖層": "Layers",
+    "鋼構遮棚": "Steel canopies",
+    "上層磚牆": "Upper brick walls",
+    "二樓平台": "Upper deck",
+    "地面層": "Ground floor",
+    "周邊聚落": "Surrounding settlement",
+    "人物（寫實／比例）": "People (realistic / scale figures)",
+    "總體配置構想": "Master plan ideas",
+    "衛星影像底圖": "Satellite image",
+    "衛星影像沒有載入成功": "The satellite image failed to load",
+    "「總體配置構想」是配置圖上畫了、但照片裡看不到的部分：兒童遊戲區、涼亭、階梯地景與瞭望塔，是否已興建還沒查到。「衛星影像底圖」是Google Maps衛星影像的截圖，僅供教學研究參考，圖上的地名與標記來自Google Maps；開啟時會先隱藏示意的周邊聚落。": "\"Master plan ideas\" are things drawn on the site plan but not visible in photographs: a children's play area, a pavilion, a stepped landscape and a lookout tower. Whether they have been built is not confirmed. \"Satellite image\" is a screenshot of Google Maps satellite imagery, for teaching and research reference only; the place names and markers on it come from Google Maps. Turning it on hides the schematic surrounding houses.",
+    "多功能室1": "Multipurpose room 1",
+    "地面層北側的半封閉房間，用於工作坊、展覽與會議。大型摺疊門打開後，會和中央的遮蔭空間連成一片。": "A semi-enclosed room at the north end of the ground floor, used for workshops, exhibitions and meetings. With the large folding doors open, it joins the shaded space in the middle.",
+    "彈性空間／遊戲區": "Flexible space / play area",
+    "地面層中央，直接向空地敞開。上方的樓板替它遮陰，背後是面向巷道的孔洞磚牆。": "The middle of the ground floor, open directly to the field. The slab above shades it, and behind it is the perforated brick wall facing the alley.",
+    "多功能室2": "Multipurpose room 2",
+    "地面層南側的房間，配置與北側相同：下半是孔洞磚，上半是青綠色的鋼網。": "The room at the south end of the ground floor, laid out like the north one: perforated brick below, teal steel mesh above.",
+    "樓梯兼階梯座位": "Stair and stepped seating",
+    "一道寬樓梯同時是動線、座位與小劇場。模型中簡化成一段往南上升的實心階梯。": "One wide stair is circulation, seating and a small theatre at once. The model simplifies it to a solid flight rising towards the south.",
+    "樓梯塔與鋼籠": "Stair tower and steel cage",
+    "凸向空地的孔洞磚塔，旁邊有一道拱門，塔頂是罩著鋼網的青綠色鋼籠。它是整棟建築面對空地最明顯的入口記號。": "A perforated brick tower that projects towards the field, with an arch beside it and a teal steel cage wrapped in mesh on top. It is the building's clearest entrance marker facing the field.",
+    "策展空間": "Curatorial space",
+    "二樓北端抬高約1m的平台（Curatorial Space），以寬階梯和中央相接，上方是紫色遮棚。": "A platform raised about 1 m at the north end of the upper level (Curatorial Space), joined to the centre by wide steps, under the purple canopy.",
+    "論壇空間／舞台": "Forum space / stage",
+    "二樓中央最低的一段（Forum Space / Stage），面向空地只有座椅高度的矮牆與紫色欄杆，站在這裡可以看整片空地。": "The lowest part of the upper level, in the middle (Forum Space / Stage). Towards the field there is only a seat-height wall and a purple railing, so from here you can see the whole field.",
+    "上層階梯座位": "Upper stepped seating",
+    "從論壇往南升高的大階梯，坐在上面面向舞台，也俯瞰空地。": "Large steps rising south from the forum. Sitting here you face the stage and look down on the field.",
+    "互動展廊": "Interactive gallery",
+    "二樓南端由孔洞磚牆圍出的房間（Interactive Gallery）。依Ammodo的說明，上層這類有孔洞磚圍合的空間，可供女性主導的聚會等較私密的活動使用。": "A room enclosed by perforated brick walls at the south end of the upper level (Interactive Gallery). According to Ammodo, upper-level spaces enclosed by perforated brick like this one can be used for more private activities such as women-led gatherings.",
+    "樹與挑空": "Tree and void",
+    "一棵樹從地面穿過樓板的開口長到二樓，旁邊立著一道孔洞磚屏風。": "A tree grows from the ground through an opening in the slab up to the upper level, with a perforated brick screen beside it.",
+    "開放舞台": "Open stage",
+    "空地上的圓形舞台（Open Stage），與建築的階梯、平台相對。空地本身維持開放，建築只佔東側邊緣。": "A circular stage on the field (Open Stage), facing the building's steps and decks. The field itself stays open; the building only takes its eastern edge.",
+    "彩色鋼構遮棚": "Coloured steel canopies",
+    "紫、桃紅、青綠三座遮棚架在磚牆頂端，邊梁在平面上呈弧形，下方掛著燈籠。": "Three canopies in purple, magenta and teal sit on top of the brick walls. Their edge beams are curved in plan, and lanterns hang beneath them.",
+    "兩端的鋼框": "Steel frames at both ends",
+    "軸測圖在這兩處標示「Future Expansion (if required)」，照片中是青綠色的鋼框。位置與大小為示意。": "The axonometric drawing labels these two spots \"Future Expansion (if required)\"; in photographs they are teal steel frames. Position and size are indicative.",
+    "達卡樹種參考": "Dhaka tree references",
+    "擬真植栽依達卡／Gulshan 湖周邊樹種研究與植物資料建模：雨樹（Samanea saman）呈開展傘冠與二回羽狀葉；芒果（Mangifera indica）呈密冠與長披針葉；印度苦楝（Azadirachta indica，Neem）呈開展樹冠與鋸齒小葉。樹幹分叉、樹皮與葉叢均為程式生成，樹齡與尺寸為場景示意；雨樹是當地栽植樹種，並非孟加拉原生種。建築挑空中的樹以年輕 Neem 示意，尚未確認現場樹種。": "Planting in Realistic mode is modelled on tree surveys of Dhaka and the Gulshan lake area and on botanical data: rain tree (Samanea saman) with a spreading umbrella crown and bipinnate leaves; mango (Mangifera indica) with a dense crown and long lanceolate leaves; neem (Azadirachta indica) with a spreading crown and serrated leaflets. Trunk branching, bark and foliage are all generated by code, and tree age and size are indicative. Rain tree is planted locally and is not native to Bangladesh. The tree in the building's void is shown as a young neem; the species on site has not been confirmed.",
+    "達卡湖岸樹種調查（2023）": "Dhaka lakeside tree survey (2023)",
+    "達卡都市樹木調查": "Dhaka urban tree survey",
+    "雨樹形態": "Rain tree morphology",
+    "芒果形態": "Mango morphology",
+    "Neem 形態": "Neem morphology",
+    "模型的限制": "Limits of the model",
+    "量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。衛星影像底圖以圖上的20m比例尺對位，與模型之間可能有數公尺的偏差，拍攝日期不明。": "The massing is estimated from the plans, sections, elevations and axonometric drawings published on ArchDaily and from photographs by City Syntax. Realistic mode is rendered live in the browser; the brick, concrete, earth and tin-roof materials are generated by code as an indication, not photographs. The perforated brick walls are shown with a texture, and the stairs, interior partitions and the zigzag edge of the deck are simplified. The surrounding houses and background towers are schematic and do not show real positions. The brick bond, outer settlement and skyline backdrop in the model proposals are likewise estimates. The outline of the field and the north arrow were measured from Google Maps satellite imagery: about 50 m north to south and 28 m east to west. The satellite image is aligned using its 20 m scale bar and may be off by a few metres from the model; its capture date is unknown."
+  };
+  var RULES = [
+    [/^約([\d.]+)m$/, '~$1 m'],
+    [/^(\d+)　(.+)$/, function (m, n, rest) { return n + '. ' + sub(rest); }],
+    [/^(\d+) (.+)$/, function (m, n, rest) { return n + ' ' + sub(rest); }]
+  ];
+  var HAN = /[㐀-鿿　-〿＀-￯]/;
+  var ATTRS = ['aria-label', 'title', 'alt', 'placeholder'];
+  var KEY = 'site-lang', lang = 'zh', missing = {};
+  var texts = new WeakMap(), attrs = new WeakMap();
+
+  function translate(s) {
+    var m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s), k = m[2];
+    if (!k || !HAN.test(k)) return null;
+    var t = Object.prototype.hasOwnProperty.call(EXACT, k) ? EXACT[k] : null;
+    if (t == null) {
+      for (var i = 0; i < RULES.length; i++) {
+        if (RULES[i][0].test(k)) { t = k.replace(RULES[i][0], RULES[i][1]); break; }
+      }
+    }
+    if (t == null) { missing[k] = 1; return null; }
+    return m[1] + t + m[3];
+  }
+  function sub(s) { var t = translate(s); return t == null ? s : t; }
+
+  function doText(n) {
+    var v = n.nodeValue, rec = texts.get(n);
+    if (lang === 'en') {
+      if (rec && v === rec.en) return;
+      var t = translate(v);
+      if (t != null) { texts.set(n, { zh: v, en: t }); n.nodeValue = t; }
+    } else if (rec && v === rec.en) { n.nodeValue = rec.zh; }
+  }
+  function doAttr(el, name) {
+    var v = el.getAttribute(name); if (v == null) return;
+    var all = attrs.get(el), rec = all && all[name];
+    if (lang === 'en') {
+      if (rec && v === rec.en) return;
+      var t = translate(v);
+      if (t != null) { if (!all) { all = {}; attrs.set(el, all); } all[name] = { zh: v, en: t }; el.setAttribute(name, t); }
+    } else if (rec && v === rec.en) { el.setAttribute(name, rec.zh); }
+  }
+  function skip(el) { return !el || el.nodeName === 'SCRIPT' || el.nodeName === 'STYLE' || (el.closest && el.closest('[data-no-translate]')); }
+  function walk(root) {
+    if (root.nodeType === 3) { if (!skip(root.parentNode)) doText(root); return; }
+    if (root.nodeType !== 1 || skip(root)) return;
+    var i, j, els = [root].concat(Array.prototype.slice.call(root.querySelectorAll('[aria-label],[title],[alt],[placeholder]')));
+    for (i = 0; i < els.length; i++) for (j = 0; j < ATTRS.length; j++) if (els[i].hasAttribute(ATTRS[j]) && !skip(els[i])) doAttr(els[i], ATTRS[j]);
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n, list = [];
+    while ((n = w.nextNode())) list.push(n);
+    for (i = 0; i < list.length; i++) if (!skip(list[i].parentNode)) doText(list[i]);
+  }
+
+  var zhTitle = document.title, meta = document.querySelector('meta[name="description"]'), zhMeta = meta ? meta.getAttribute('content') : '';
+  function setLang(l, save) {
+    lang = l === 'en' ? 'en' : 'zh';
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
+    document.title = lang === 'en' ? sub(zhTitle) : zhTitle;
+    if (meta) meta.setAttribute('content', lang === 'en' ? sub(zhMeta) : zhMeta);
+    walk(document.body);
+    Array.prototype.forEach.call(document.querySelectorAll('#langSeg button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
+    if (save) { try { localStorage.setItem(KEY, lang); } catch (e) {} }
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  // the switch, at the right end of the page header
+  var head = document.querySelector('.head');
+  if (head) {
+    var seg = document.createElement('div');
+    seg.className = 'seg lang'; seg.id = 'langSeg'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Language'); seg.setAttribute('data-no-translate', '');
+    [['zh', '中文'], ['en', 'English']].forEach(function (o) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-lang', o[0]); b.setAttribute('lang', o[0] === 'zh' ? 'zh-Hant' : 'en'); b.textContent = o[1];
+      b.addEventListener('click', function () { setLang(o[0], true); });
+      seg.appendChild(b);
+    });
+    head.appendChild(seg);
+  }
+
+  new MutationObserver(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i];
+      if (m.type === 'characterData') { if (!skip(m.target.parentNode)) doText(m.target); }
+      else if (m.type === 'attributes') { if (!skip(m.target)) doAttr(m.target, m.attributeName); }
+      else for (var j = 0; j < m.addedNodes.length; j++) walk(m.addedNodes[j]);
+    }
+  }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+
+  var start = null, q = /[?&]lang=(en|zh)\b/.exec(location.search);
+  if (q) start = q[1];
+  if (!start) { try { start = localStorage.getItem(KEY); } catch (e) {} }
+  if (start !== 'en' && start !== 'zh') start = /^zh\b/i.test(navigator.language || '') ? 'zh' : 'en';
+  setLang(start, !!q);
+  window.SITE_LANG = { get: function () { return lang; }, set: function (l) { setLang(l, true); }, missing: function () { return Object.keys(missing); } };
+})();
+</script>
+<!-- i18n:end -->
 </body>
 </html>
 
