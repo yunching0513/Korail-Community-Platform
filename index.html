@@ -245,7 +245,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     </section>
     <section class="card">
       <h2>模型的限制</h2>
-      <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。衛星影像底圖以圖上的20m比例尺對位，與模型之間可能有數公尺的偏差，拍攝日期不明。</p>
+      <p class="note">量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯與內部隔間都簡化過；遮棚的弧線與高低起伏、平台邊緣的折線是依照片估的；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。衛星影像底圖以圖上的20m比例尺對位，與模型之間可能有數公尺的偏差，拍攝日期不明。</p>
     </section>
   </aside>
 </div>
@@ -411,26 +411,79 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     parent.add(m);
     return m;
   }
-  // Steel canopy: a deep coloured fascia whose field-side edge curves inward, with slats below.
-  function canopy(x0, x1, z0, z1, top, mat, mat2, curve, parent) {
-    var t = 0.14, h = 0.42, mx = (x0 + x1) / 2;
-    var s = new THREE.Shape();
-    s.moveTo(x0, z0); s.lineTo(x1, z0); s.lineTo(x1, z1); s.quadraticCurveTo(mx, z1 - 2 * curve, x0, z1); s.lineTo(x0, z0);
-    var hole = new THREE.Path();
-    hole.moveTo(x0 + t, z0 + t); hole.lineTo(x1 - t, z0 + t); hole.lineTo(x1 - t, z1 - t);
-    hole.quadraticCurveTo(mx, z1 - t - 2 * curve, x0 + t, z1 - t); hole.lineTo(x0 + t, z0 + t);
-    s.holes.push(hole);
-    var geo = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 18 });
-    geo.rotateX(Math.PI / 2);
+  // Steel canopy, read from photographs: a fascia ring whose height follows a profile along the building,
+  // with one end of its outline cut by a wide elliptical arc (the curved edge beam seen from the air).
+  function ramp(xa, ha, xb, hb) {
+    return function (x) { var u = Math.max(0, Math.min(1, (x - xa) / (xb - xa))); return ha + (hb - ha) * u * u * (3 - 2 * u); };
+  }
+  function canopyOutline(c) {
+    var p = [], n = 28, k, xbr = c.xbr === undefined ? c.x1 : c.xbr;
+    function seg(a, b) { var d = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.ceil(d / 0.5)); for (var i = 0; i < m; i++) p.push([a[0] + (b[0] - a[0]) * i / m, a[1] + (b[1] - a[1]) * i / m]); }
+    if (c.arc === 'n') {
+      seg([c.x0, c.z0], [xbr, c.z0]); seg([xbr, c.z0], [c.x1, c.z1]); seg([c.x1, c.z1], [c.xa, c.z1]);
+      for (k = 0; k < n; k++) { var a = k / n * Math.PI / 2; p.push([c.xa - (c.xa - c.x0) * Math.sin(a), c.zb + (c.z1 - c.zb) * Math.cos(a)]); }
+      seg([c.x0, c.zb], [c.x0, c.z0]);
+    } else {
+      seg([c.x0, c.z0], [c.x1, c.z0]); seg([c.x1, c.z0], [c.x1, c.zb]);
+      for (k = 0; k < n; k++) { var b = (1 - k / n) * Math.PI / 2; p.push([c.xa + (c.x1 - c.xa) * Math.sin(b), c.zb + (c.z1 - c.zb) * Math.cos(b)]); }
+      seg([c.xa, c.z1], [c.x0, c.z1]); seg([c.x0, c.z1], [c.x0, c.z0]);
+    }
+    return p.filter(function (q, i) { var r = p[(i + 1) % p.length]; return Math.hypot(r[0] - q[0], r[1] - q[1]) > 1e-3; });
+  }
+  function canopyFront(c, x) {
+    if (c.arc === 'n' && x < c.xa) return c.zb + (c.z1 - c.zb) * Math.cos(Math.asin(Math.min(1, (c.xa - x) / (c.xa - c.x0))));
+    if (c.arc === 's' && x > c.xa) return c.zb + (c.z1 - c.zb) * Math.cos(Math.asin(Math.min(1, (x - c.xa) / (c.x1 - c.xa))));
+    return c.z1;
+  }
+  function canopyBack(c, x) {
+    var xbr = c.xbr === undefined ? c.x1 : c.xbr;
+    return x <= xbr ? c.z0 : c.z0 + (c.z1 - c.z0) * (x - xbr) / (c.x1 - xbr);
+  }
+  // a closed band of width t and depth h under the outline pts; each point sits at height prof(x)
+  function ringBand(pts, prof, t, h, mat, parent) {
+    var n = pts.length, inner = [], i, area = 0, cx = 0, cz = 0;
+    function nrm(v) { var l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; }
+    for (i = 0; i < n; i++) { var a = pts[i], b = pts[(i + 1) % n]; area += a[0] * b[1] - b[0] * a[1]; cx += a[0] / n; cz += a[1] / n; }
+    var sg = area > 0 ? 1 : -1;
+    for (i = 0; i < n; i++) {
+      var pr = pts[(i - 1 + n) % n], c = pts[i], nx = pts[(i + 1) % n];
+      var e1 = nrm([c[0] - pr[0], c[1] - pr[1]]), e2 = nrm([nx[0] - c[0], nx[1] - c[1]]);
+      var n1 = [-e1[1] * sg, e1[0] * sg], n2 = [-e2[1] * sg, e2[0] * sg], m = nrm([n1[0] + n2[0], n1[1] + n2[1]]);
+      var d = t / Math.max(0.35, m[0] * n2[0] + m[1] * n2[1]);
+      inner.push([c[0] + m[0] * d, c[1] + m[1] * d]);
+    }
+    var P = [];
+    function quad(A, B, C, D, dir) {
+      var u = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], v = [D[0] - A[0], D[1] - A[1], D[2] - A[2]];
+      var cr = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+      if (cr[0] * dir[0] + cr[1] * dir[1] + cr[2] * dir[2] < 0) { var T = B; B = D; D = T; }
+      P.push.apply(P, A.concat(B, C, A, C, D));
+    }
+    for (i = 0; i < n; i++) {
+      var j = (i + 1) % n, o0 = pts[i], o1 = pts[j], i0 = inner[i], i1 = inner[j];
+      var h0 = prof(o0[0]), h1 = prof(o1[0]), g0 = prof(i0[0]), g1 = prof(i1[0]);
+      var out = [(o0[0] + o1[0]) / 2 - cx, 0, (o0[1] + o1[1]) / 2 - cz];
+      quad([o0[0], h0, o0[1]], [o0[0], h0 - h, o0[1]], [o1[0], h1 - h, o1[1]], [o1[0], h1, o1[1]], out);
+      quad([i0[0], g0, i0[1]], [i0[0], g0 - h, i0[1]], [i1[0], g1 - h, i1[1]], [i1[0], g1, i1[1]], [-out[0], 0, -out[2]]);
+      quad([o0[0], h0, o0[1]], [o1[0], h1, o1[1]], [i1[0], g1, i1[1]], [i0[0], g0, i0[1]], [0, 1, 0]);
+      quad([o0[0], h0 - h, o0[1]], [o1[0], h1 - h, o1[1]], [i1[0], g1 - h, i1[1]], [i0[0], g0 - h, i0[1]], [0, -1, 0]);
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    geo.computeVertexNormals();
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(P.length / 3 * 2), 2));
+    worldUV(geo, { x: 0, y: 0, z: 0 });
     var m = new THREE.Mesh(geo, mat);
-    m.position.y = top;
     m.castShadow = true; m.receiveShadow = true;
     parent.add(m);
+    return m;
+  }
+  function canopy(c, mat, mat2, parent) {
+    ringBand(canopyOutline(c), c.prof, 0.14, 0.42, mat, parent);
     var i = 0;
-    for (var x = x0 + 0.5; x < x1 - 0.3; x += 0.55, i++) {
-      var u = (x1 - x) / (x1 - x0);
-      var ze = z1 - 4 * curve * u * (1 - u) - t;
-      box(x - 0.04, x + 0.04, top - 0.3, top - 0.2, z0 + t, ze, i % 3 === 1 ? mat2 : mat, parent);
+    for (var x = c.x0 + 0.5; x < c.x1 - 0.3; x += 0.55, i++) {
+      var zs = canopyBack(c, x) + 0.14, ze = canopyFront(c, x) - 0.14, H = c.prof(x);
+      if (ze - zs > 0.3) box(x - 0.04, x + 0.04, H - 0.3, H - 0.2, zs, ze, i % 3 === 1 ? mat2 : mat, parent);
     }
   }
   function lantern(x, y, z, top, mat, parent) {
@@ -662,34 +715,62 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
       return box(Math.max(x0, -0.39), Math.min(x1, L + 0.39), y0, y1, Math.max(z0, -0.19), Math.min(z1, 4.99), M.deck, g);
     }
     // slab with openings for the stair and the tree
-    slab(-0.4, 8.4, 3.0, 3.3, -0.2, 5.0);
+    slab(-0.4, 8.4, 3.0, 3.3, -0.2, 4.75);
     slab(8.4, 12.4, 3.0, 3.3, -0.2, 0.4);
     slab(8.4, 12.4, 3.0, 3.3, 3.3, 3.75);
     slab(11.2, 12.8, 3.0, 3.3, 3.75, 5.0);
-    slab(12.4, 17.7, 3.0, 3.3, -0.2, 5.0);
-    slab(17.7, 21.4, 3.0, 3.3, 2.0, 5.0);
+    slab(12.4, 17.7, 3.0, 3.3, -0.2, 4.75);
+    slab(17.7, 21.4, 3.0, 3.3, 2.0, 4.75);
     slab(17.7, 21.4, 3.0, 3.3, -0.2, 0.12);
-    slab(21.4, L + 0.4, 3.0, 3.3, -0.2, 5.0);
+    slab(21.4, L + 0.4, 3.0, 3.3, -0.2, 4.75);
     // raised terraces at both ends, reached by wide steps
-    slab(-0.4, 5.6, 3.3, 4.3, -0.2, 5.0);
-    slab(21.3, L + 0.4, 3.3, 4.3, -0.2, 5.0);
+    slab(-0.4, 5.6, 3.3, 4.3, -0.2, 4.75);
+    slab(21.3, L + 0.4, 3.3, 4.3, -0.2, 4.75);
+    // the field-side edge is a folded line, as the aerial photographs show (bends and offsets estimated)
+    var EDGE = [[-0.4, 4.88], [8.4, 5.12], [11.2, 5.0], [12.8, 5.0], [17.2, 5.42], [21.3, 4.86], [25.6, 5.38], [L + 0.4, 4.96]];
+    function edgeZ(x) {
+      for (var k = 0; k < EDGE.length - 1; k++) { var a = EDGE[k], b = EDGE[k + 1]; if (x <= b[0]) return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]); }
+      return EDGE[EDGE.length - 1][1];
+    }
+    function edgePts(xa, xb) {
+      var q = [[xa, edgeZ(xa)]];
+      EDGE.forEach(function (e) { if (e[0] > xa + 1e-6 && e[0] < xb - 1e-6) q.push(e); });
+      q.push([xb, edgeZ(xb)]); return q;
+    }
+    function prism(pts, y0, y1, mat) {
+      var sh = new THREE.Shape();
+      pts.forEach(function (q, k) { if (k) sh.lineTo(q[0], q[1]); else sh.moveTo(q[0], q[1]); });
+      var geo = new THREE.ExtrudeGeometry(sh, { depth: y1 - y0, bevelEnabled: false });
+      geo.rotateX(Math.PI / 2);
+      var m = new THREE.Mesh(geo, mat); m.position.y = y1;
+      worldUV(geo, m.position); m.castShadow = true; m.receiveShadow = true; g.add(m); return m;
+    }
+    function edgeStrip(xa, xb, y0, y1) { prism([[xa, 4.75]].concat(edgePts(xa, xb), [[xb, 4.75]]), y0, y1, M.deck); }
+    function edgeBand(xa, xb, y0, y1, z0, z1, mat) {
+      var q = edgePts(xa, xb);
+      for (var k = 0; k < q.length - 1; k++) prism([[q[k][0], q[k][1] + z0], [q[k + 1][0], q[k + 1][1] + z0], [q[k + 1][0], q[k + 1][1] + z1], [q[k][0], q[k][1] + z1]], y0, y1, mat);
+    }
+    edgeStrip(-0.4, 5.6, 3.0, 4.3);
+    edgeStrip(5.6, 8.4, 3.0, 3.3);
+    edgeStrip(12.8, 21.3, 3.0, 3.3);
+    edgeStrip(21.3, L + 0.4, 3.0, 4.3);
     for (var i = 0; i < 4; i++) {
       slab(5.6 + i * 0.7, 6.3 + i * 0.7, 3.3, 4.3 - i * 0.25, 0.25, 4.75);
       slab(20.4 - i * 0.9, 21.3 - i * 0.9, 3.3, 4.3 - i * 0.25, 2.2, 4.75);
     }
     // parapets: tall band on the north wing, seat-height wall with a purple rail in the middle
-    box(-0.4, 8.4, 3.0, 5.3, 4.75, 5.0, M.brick, g);
+    edgeBand(-0.4, 8.4, 3.0, 5.3, -0.25, 0, M.brick);
     box(-0.4, -0.16, 3.0, 5.3, -0.2, 4.75, M.brick, g);
     box(-0.16, 3.4, 3.0, 5.3, -0.2, 0.04, M.brick, g);
-    box(12.8, 21.3, 3.0, 3.85, 4.75, 5.0, M.brick, g);
-    box(21.3, L + 0.4, 3.0, 5.1, 4.75, 5.0, M.brick, g);
+    edgeBand(12.8, 21.3, 3.0, 3.85, -0.25, 0, M.brick);
+    edgeBand(21.3, L + 0.4, 3.0, 5.1, -0.25, 0, M.brick);
     box(L + 0.16, L + 0.4, 3.0, 5.1, -0.2, 4.75, M.brick, g);
     box(21.3, 25.4, 3.0, 5.1, -0.2, 0.04, M.brick, g);
     box(8.4, 12.9, 3.0, 4.4, -0.2, 0.04, M.brick, g);
     box(15.9, 17.0, 3.0, 4.2, -0.2, 0.04, M.brick, g);
     box(19.0, 21.3, 3.0, 4.4, -0.2, 0.04, M.brick, g);
-    for (var x = 13.0; x <= 21.2; x += 1.64) cyl(x, 3.3, 4.3, 5.12, 0.04, M.purple, g);
-    box(12.9, 21.3, 4.26, 4.34, 5.08, 5.16, M.purple, g);
+    for (var x = 13.0; x <= 21.2; x += 1.64) cyl(x, 3.3, 4.3, edgeZ(x) + 0.12, 0.04, M.purple, g);
+    edgeBand(12.9, 21.3, 4.26, 4.34, 0.08, 0.16, M.purple);
     // planting along the parapets
     [0.6, 2.2, 3.9, 6.9, 22.6, 24.3, 26.4, 28.6, 30.4].forEach(function (x, k) {
       shrub(x, 4.65, 4.35, 0.42 + (k % 3) * 0.06, g);
@@ -714,58 +795,68 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     var g = G.upper;
     // north tower around the curatorial space
     box(3.4, 5.9, 4.3, 8.2, 3.4, 3.64, M.jaali, g);
-    box(6.6, 8.3, 3.3, 8.2, 3.4, 3.64, M.brick, g);
+    box(6.6, 8.3, 3.3, 7.8, 3.4, 3.64, M.brick, g);
     box(3.4, 3.64, 4.3, 8.2, 0.04, 3.4, M.jaali, g);
-    box(3.64, 8.3, 3.3, 8.2, -0.2, 0.04, M.jaali, g);
+    box(3.64, 6.6, 3.3, 8.2, -0.2, 0.04, M.jaali, g);
+    box(6.6, 8.3, 3.3, 7.8, -0.2, 0.04, M.jaali, g);
     // tall wall behind the forum
-    box(12.9, 14.3, 3.3, 7.3, -0.2, 0.04, M.brick, g);
-    box(14.3, 15.9, 3.3, 7.3, -0.2, 0.04, M.jaali, g);
+    box(12.9, 14.3, 3.3, 6.8, -0.2, 0.04, M.brick, g);
+    box(14.3, 15.9, 3.3, 6.98, -0.2, 0.04, M.jaali, g);
     box(17.0, 18.2, 3.3, 7.3, -0.2, 0.04, M.jaali, g);
     box(18.2, 19.0, 3.3, 7.3, -0.2, 0.04, M.brick, g);
-    box(12.9, 13.14, 3.3, 7.3, 0.04, 2.0, M.jaali, g);
+    box(12.9, 13.14, 3.3, 6.8, 0.04, 2.0, M.jaali, g);
     box(17.7, 21.3, 3.3, 6.0, 2.0, 2.22, M.jaali, g);
     // south tower around the interactive gallery
     box(25.4, 30.4, 4.3, 8.6, 3.46, 3.7, M.jaali, g);
     box(30.16, 30.4, 4.3, 8.6, 0.04, 3.46, M.jaali, g);
     box(25.4, 30.4, 4.3, 8.6, -0.2, 0.04, M.jaali, g);
     box(25.4, 25.64, 4.3, 8.6, 0.04, 1.5, M.brick, g);
-    box(21.8, 22.7, 4.3, 8.6, 3.46, 3.7, M.brick, g);
-    box(21.8, 22.7, 4.3, 8.6, -0.2, 0.04, M.brick, g);
+    box(21.8, 22.7, 4.3, 7.7, 3.46, 3.7, M.brick, g);
+    box(21.8, 22.7, 4.3, 7.7, -0.2, 0.04, M.brick, g);
   })();
 
   // ---------- steel canopies, cage, lanterns ----------
   (function () {
     var g = G.canopy;
-    canopy(3.2, 8.5, -0.3, 4.1, 8.62, M.purple, M.teal, 0.55, g);
-    canopy(12.7, 21.0, -0.3, 3.3, 7.72, M.pink, M.purple, 0.6, g);
-    canopy(21.6, 30.6, -0.3, 4.2, 9.02, M.teal, M.purple, 0.7, g);
-    cyl(12.85, 3.3, 7.3, 3.15, 0.05, M.pink, g);
-    cyl(20.85, 6.0, 7.3, 2.1, 0.05, M.pink, g);
+    // heights and arcs estimated from the field-side and aerial photographs
+    var CP = {
+      purple: { x0: 3.2, x1: 8.5, z0: -0.3, z1: 4.1, arc: 's', xa: 6.1, zb: 0.6, prof: ramp(6.1, 8.62, 8.5, 8.22) },
+      pink: { x0: 12.7, x1: 21.0, xbr: 20.2, z0: -0.3, z1: 3.3, arc: 'n', xa: 16.4, zb: 0.25, prof: ramp(12.7, 7.22, 16.5, 7.72) },
+      teal: { x0: 21.6, x1: 30.6, z0: -0.3, z1: 4.2, arc: 'n', xa: 25.4, zb: 0.4, prof: ramp(21.6, 8.12, 25.4, 9.02) },
+      cage: { x0: 11.1, x1: 12.8, z0: 3.5, z1: 5.24, arc: 's', xa: 11.1, zb: 3.5, prof: ramp(11.1, 7.1, 12.8, 6.35) }
+    };
+    canopy(CP.purple, M.purple, M.teal, g);
+    canopy(CP.pink, M.pink, M.purple, g);
+    canopy(CP.teal, M.teal, M.purple, g);
+    cyl(16.4, 3.3, 7.3, 3.15, 0.05, M.pink, g);
+    cyl(20.55, 6.0, 7.3, 2.1, 0.05, M.pink, g);
     // teal cage over the stair tower, with its roof reaching over the arch bay
     var y0 = 4.6, y1 = 7.1;
-    [[8.4, 3.5, y0], [8.4, 5.9, y0], [11.1, 5.9, y0], [11.1, 3.5, 3.3], [12.7, 5.14, 4.3], [12.7, 3.5, 3.3]].forEach(function (p) {
-      box(p[0], p[0] + 0.1, p[2], y1, p[1], p[1] + 0.1, M.teal, g);
+    [[8.4, 3.5, y0], [8.4, 5.9, y0], [11.1, 5.9, y0], [11.1, 3.5, 3.3], [12.7, 3.5, 3.3]].forEach(function (p) {
+      box(p[0], p[0] + 0.1, p[2], CP.cage.prof(p[0] + 0.05), p[1], p[1] + 0.1, M.teal, g);
     });
     box(8.4, 11.2, y1 - 0.3, y1, 5.9, 6.0, M.teal, g);
-    box(8.4, 12.8, y1 - 0.3, y1, 3.5, 3.6, M.teal, g);
+    box(8.4, 11.2, y1 - 0.3, y1, 3.5, 3.6, M.teal, g);
     box(8.4, 8.5, y1 - 0.3, y1, 3.6, 5.9, M.teal, g);
     box(11.1, 11.2, y1 - 0.3, y1, 3.6, 5.9, M.teal, g);
-    box(11.2, 12.8, y1 - 0.3, y1, 5.14, 5.24, M.teal, g);
-    box(12.7, 12.8, y1 - 0.3, y1, 3.6, 5.14, M.teal, g);
+    // the roof over the arch bay: an arc in plan that also dips toward the south
+    ringBand(canopyOutline(CP.cage), CP.cage.prof, 0.1, 0.3, M.teal, g);
     for (var x = 8.9, i = 0; x < 12.6; x += 0.5, i++) {
       if (x > 11.0 && x < 11.3) continue;
-      box(x - 0.035, x + 0.035, y1 - 0.2, y1 - 0.1, 3.6, x < 11.1 ? 5.9 : 5.14, i % 3 === 1 ? M.purple : M.teal, g);
+      if (x < 11.1) { box(x - 0.035, x + 0.035, y1 - 0.2, y1 - 0.1, 3.6, 5.9, i % 3 === 1 ? M.purple : M.teal, g); continue; }
+      var hc = CP.cage.prof(x), zc = canopyFront(CP.cage, x) - 0.1;
+      if (zc - 3.6 > 0.25) box(x - 0.035, x + 0.035, hc - 0.2, hc - 0.1, 3.6, zc, i % 3 === 1 ? M.purple : M.teal, g);
     }
     box(8.5, 11.1, y0, y1 - 0.3, 5.93, 5.97, M.mesh, g, true);
     box(8.43, 8.47, y0, y1 - 0.3, 3.6, 5.9, M.mesh, g, true);
-    lantern(11.8, 5.6, 5.4, 6.85, M.lanternA, g);
-    lantern(12.2, 4.9, 4.6, 6.85, M.lanternB, g);
-    lantern(11.5, 4.4, 4.9, 6.85, M.lanternC, g);
-    lantern(6.2, 7.3, 2.6, 8.25, M.lanternB, g);
-    lantern(16.4, 6.2, 1.6, 7.35, M.lanternA, g);
-    lantern(18.2, 6.5, 2.6, 7.35, M.lanternB, g);
-    lantern(23.6, 7.4, 2.9, 8.65, M.lanternA, g);
-    lantern(24.5, 6.9, 1.8, 8.65, M.lanternB, g);
+    lantern(11.6, 5.6, 4.6, CP.cage.prof(11.6) - 0.25, M.lanternA, g);
+    lantern(12.1, 4.9, 3.9, CP.cage.prof(12.1) - 0.25, M.lanternB, g);
+    lantern(11.4, 4.4, 4.0, CP.cage.prof(11.4) - 0.25, M.lanternC, g);
+    lantern(6.2, 7.3, 2.6, CP.purple.prof(6.2) - 0.37, M.lanternB, g);
+    lantern(16.4, 6.2, 1.6, CP.pink.prof(16.4) - 0.37, M.lanternA, g);
+    lantern(18.2, 6.5, 2.6, CP.pink.prof(18.2) - 0.37, M.lanternB, g);
+    lantern(23.6, 7.4, 2.9, CP.teal.prof(23.6) - 0.37, M.lanternA, g);
+    lantern(24.5, 6.9, 1.8, CP.teal.prof(24.5) - 0.37, M.lanternB, g);
   })();
 
   // ---------- site ----------
@@ -1318,7 +1409,7 @@ input[type="range"] { width: 100%; min-width: 0; margin: 0; accent-color: var(--
     { p: [27.9, 5.3, 2.0], g: 'upper', t: '互動展廊', d: '二樓南端由孔洞磚牆圍出的房間（Interactive Gallery）。依Ammodo的說明，上層這類有孔洞磚圍合的空間，可供女性主導的聚會等較私密的活動使用。' },
     { p: [20.4, 6.9, 1.1], g: 'ground', t: '樹與挑空', d: '一棵樹從地面穿過樓板的開口長到二樓，旁邊立著一道孔洞磚屏風。' },
     { p: [10.5, 0.5, 11.5], g: 'site', t: '開放舞台', d: '空地上的圓形舞台（Open Stage），與建築的階梯、平台相對。空地本身維持開放，建築只佔東側邊緣。' },
-    { p: [17, 8.1, 1.4], g: 'canopy', t: '彩色鋼構遮棚', d: '紫、桃紅、青綠三座遮棚架在磚牆頂端，邊梁在平面上呈弧形，下方掛著燈籠。' },
+    { p: [17, 8.1, 1.4], g: 'canopy', t: '彩色鋼構遮棚', d: '紫、桃紅、青綠三座遮棚架在磚牆頂端。每座遮棚有一端的邊梁在平面上是一大段弧線，高度也跟著起伏：青綠與桃紅遮棚往北端降低，紫色遮棚往南端降低。下方掛著燈籠。' },
     { p: [-1.0, 5.9, 2.3], g: 'deck', t: '兩端的鋼框', d: '軸測圖在這兩處標示「Future Expansion (if required)」，照片中是青綠色的鋼框。位置與大小為示意。' }
   ];
   var placesEl = document.getElementById('places'), detailEl = document.getElementById('detail');
@@ -2021,7 +2112,7 @@ html[lang="en"] .row { grid-template-columns: 6.6em minmax(0, 1fr) 3.6em; }
     "開放舞台": "Open stage",
     "空地上的圓形舞台（Open Stage），與建築的階梯、平台相對。空地本身維持開放，建築只佔東側邊緣。": "A circular stage on the field (Open Stage), facing the building's steps and decks. The field itself stays open; the building only takes its eastern edge.",
     "彩色鋼構遮棚": "Coloured steel canopies",
-    "紫、桃紅、青綠三座遮棚架在磚牆頂端，邊梁在平面上呈弧形，下方掛著燈籠。": "Three canopies in purple, magenta and teal sit on top of the brick walls. Their edge beams are curved in plan, and lanterns hang beneath them.",
+    "紫、桃紅、青綠三座遮棚架在磚牆頂端。每座遮棚有一端的邊梁在平面上是一大段弧線，高度也跟著起伏：青綠與桃紅遮棚往北端降低，紫色遮棚往南端降低。下方掛著燈籠。": "Three canopies in purple, magenta and teal sit on top of the brick walls. At one end of each, the edge beam sweeps in a wide arc in plan and its height changes too: the teal and magenta canopies dip towards the north, the purple one towards the south. Lanterns hang beneath them.",
     "兩端的鋼框": "Steel frames at both ends",
     "軸測圖在這兩處標示「Future Expansion (if required)」，照片中是青綠色的鋼框。位置與大小為示意。": "The axonometric drawing labels these two spots \"Future Expansion (if required)\"; in photographs they are teal steel frames. Position and size are indicative.",
     "達卡樹種參考": "Dhaka tree references",
@@ -2032,7 +2123,7 @@ html[lang="en"] .row { grid-template-columns: 6.6em minmax(0, 1fr) 3.6em; }
     "芒果形態": "Mango morphology",
     "Neem 形態": "Neem morphology",
     "模型的限制": "Limits of the model",
-    "量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯、內部隔間與平台邊緣的鋸齒形都簡化過；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。衛星影像底圖以圖上的20m比例尺對位，與模型之間可能有數公尺的偏差，拍攝日期不明。": "The massing is estimated from the plans, sections, elevations and axonometric drawings published on ArchDaily and from photographs by City Syntax. Realistic mode is rendered live in the browser; the brick, concrete, earth and tin-roof materials are generated by code as an indication, not photographs. The perforated brick walls are shown with a texture, and the stairs, interior partitions and the zigzag edge of the deck are simplified. The surrounding houses and background towers are schematic and do not show real positions. The brick bond, outer settlement and skyline backdrop in the model proposals are likewise estimates. The outline of the field and the north arrow were measured from Google Maps satellite imagery: about 50 m north to south and 28 m east to west. The satellite image is aligned using its 20 m scale bar and may be off by a few metres from the model; its capture date is unknown."
+    "量體依ArchDaily刊載的平面、剖面、立面、軸測圖與City Syntax的照片推估。擬真模式是瀏覽器即時算圖，磚、混凝土、泥土地和鐵皮屋頂的材質都是程式生成的示意，不是照片。孔洞磚牆以貼圖示意，樓梯與內部隔間都簡化過；遮棚的弧線與高低起伏、平台邊緣的折線是依照片估的；周邊房屋與背景高樓只是示意，不代表實際位置。模型提案中的孔洞磚砌法、外圈聚落與天際線背板，同樣是推估與示意。空地的輪廓與指北針依Google Maps衛星影像量測，南北約50m、東西約28m。衛星影像底圖以圖上的20m比例尺對位，與模型之間可能有數公尺的偏差，拍攝日期不明。": "The massing is estimated from the plans, sections, elevations and axonometric drawings published on ArchDaily and from photographs by City Syntax. Realistic mode is rendered live in the browser; the brick, concrete, earth and tin-roof materials are generated by code as an indication, not photographs. The perforated brick walls are shown with a texture, and the stairs and interior partitions are simplified; the canopy arcs, their rise and fall, and the folded edge of the deck are estimated from photographs. The surrounding houses and background towers are schematic and do not show real positions. The brick bond, outer settlement and skyline backdrop in the model proposals are likewise estimates. The outline of the field and the north arrow were measured from Google Maps satellite imagery: about 50 m north to south and 28 m east to west. The satellite image is aligned using its 20 m scale bar and may be off by a few metres from the model; its capture date is unknown."
   };
   var RULES = [
     [/^約([\d.]+)m$/, '~$1 m'],
